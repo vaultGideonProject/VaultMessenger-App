@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "393456298207",
+    "project_id": "vaultmessengerdev",
+    "storage_bucket": "vaultmessengerdev.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:393456298207:android:8965a9daad0a9bc1a8a16a",
+        "android_client_info": {
+          "package_name": "com.vaultmessenger"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "393456298207-vti3j8pj5e5ks179h83kblov3ldndbm5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vaultmessenger",
+            "certificate_hash": "631b4a8588bb42c6db3ba4d8fdb7f03b5169cc35"
+          }
+        },
+        {
+          "client_id": "393456298207-82inr3hd293ibdq9hurm92vcl3drphb1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVsk56AeZE7RCsdbjfgc8yYP7UO_As8-c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "393456298207-82inr3hd293ibdq9hurm92vcl3drphb1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
