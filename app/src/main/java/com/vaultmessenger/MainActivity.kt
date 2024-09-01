@@ -1,4 +1,5 @@
 package com.vaultmessenger
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -85,7 +86,9 @@ import androidx.annotation.RequiresApi
 import com.vaultmessenger.notifications.SetPermissions
 import android.os.Handler
 import android.os.Looper
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.text.style.TextAlign
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
@@ -513,7 +516,7 @@ fun GreetingPreview() {
 
     // Providing default values for CompositionLocal providers
         VaultmessengerTheme {
-            Navigation()
+          //  Navigation()
         }
 }
 

@@ -1,56 +1,39 @@
 package com.vaultmessenger.ui.item
 
 import NotificationsViewModel
-import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.Firebase
+import androidx.navigation.NavController
 import com.vaultmessenger.R
 import com.vaultmessenger.model.Conversation
 import com.vaultmessenger.model.Message
-import com.vaultmessenger.modules.AndroidAudioRecorder
 import com.vaultmessenger.modules.FirebaseService
-import com.vaultmessenger.modules.FirebaseUserRepository
-import com.vaultmessenger.modules.NotificationRepository
-import com.vaultmessenger.ui.saveProfileImage
 import com.vaultmessenger.viewModel.ChatViewModel
 import com.vaultmessenger.viewModel.ConversationViewModel
-import com.vaultmessenger.viewModel.NotificationsViewModelFactory
 import com.vaultmessenger.viewModel.ProfileViewModel
-import com.vaultmessenger.viewModel.ProfileViewModelFactory
-import com.vaultmessenger.viewModel.ReceiverUserViewModel
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import java.io.File
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -69,8 +52,13 @@ fun ChatInputBox(
     profileViewModel: ProfileViewModel,
     chatViewModel: ChatViewModel,
     conversationViewModel: ConversationViewModel,
+    navController: NavController,
 ) {
     var chatInputBox by remember { mutableStateOf(TextFieldValue("")) }
+
+    var isMicClicked by remember {
+        mutableStateOf(false)
+    }
 
     val scope = rememberCoroutineScope()
 
@@ -109,6 +97,21 @@ fun ChatInputBox(
                                 message = updatedImageMessage,
                                 viewModelStoreOwner = viewModelStoreOwner,
                             )
+                        }
+                        scope.launch {
+                            val getToken = profileViewModel.getUserToken(userId = receiverUID)
+                            profileViewModel.isUserOnlineStatus(receiverUID) { isOnline ->
+                                if (!isOnline) {
+                                    getToken?.let { token ->
+                                        notificationsViewModel.sendNotification(
+                                            token = token,
+                                            body = "[sent you a Photo]",
+                                            title = name,
+                                            imageURL = photoUrl
+                                        )
+                                    }
+                                }
+                            }
                         }
 
                     }catch(e:Exception){
@@ -156,13 +159,14 @@ fun ChatInputBox(
                     }
                     IconButton(
                         onClick = {
-                            // TODO: Add your click logic here
+
                         },
                         modifier = Modifier.padding(start = 8.dp) // Adjust spacing between icons
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_stat_name),
-                            contentDescription = "Emojis"
+                            imageVector = Icons.Filled.Camera, // Using the Camera icon from Icons.Filled
+                            contentDescription = "Camera Icon", // Provide a meaningful description for accessibility
+                            modifier = modifier // Apply any modifiers such as size or padding
                         )
                     }
                 }
@@ -231,7 +235,31 @@ fun ChatInputBox(
                 PulsingMicIcon(
                     chatViewModel = chatViewModel,
                     receiverUID = receiverUID,
-                    senderUID = senderUID
+                    senderUID = senderUID,
+                    conversationViewModel = conversationViewModel,
+                    viewModelStoreOwner = viewModelStoreOwner,
+                    userName = name,
+                    profilePhoto = photoUrl,
+                    onSuccess = {sendNotification->
+                        if(sendNotification){
+                            scope.launch {
+                                val getToken = profileViewModel.getUserToken(userId = receiverUID)
+                                profileViewModel.isUserOnlineStatus(receiverUID) { isOnline ->
+                                    if (!isOnline) {
+                                        getToken?.let { token ->
+                                            notificationsViewModel.sendNotification(
+                                                token = token,
+                                                body = "[sent you a recording]",
+                                                title = name,
+                                                imageURL = photoUrl
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    }
                 )
             } else {
                 Icon(

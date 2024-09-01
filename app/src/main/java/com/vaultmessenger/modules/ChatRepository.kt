@@ -47,6 +47,24 @@ class ChatRepository {
         }
     }
 
+    // Function to send a voice message
+    suspend fun sendVoiceMessage(
+        senderUid: String,
+        receiverUid: String,
+        voiceNoteUrl: String,
+        messageText: String? = null
+    ) {
+        val message = Message(
+            messageText = messageText ?: "",  // Use an empty string if messageText is null
+            voiceNoteURL = voiceNoteUrl,
+            userId1 = senderUid,
+            userId2 = receiverUid,
+            timestamp = System.currentTimeMillis().toString()
+        )
+        sendMessage(senderUid, receiverUid, message)
+    }
+
+
     // Function to retrieve messages between two users in real-time
     // fixed issue of making too many network calls, now caching to firebase
     fun getMessagesFlow(senderUid: String, receiverUid: String): Flow<List<Message>> = callbackFlow {

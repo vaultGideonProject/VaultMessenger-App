@@ -34,6 +34,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.VideoCall
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -101,7 +102,8 @@ fun ChatToolbar(
         actions = {
             IconButton(onClick = {}) {
                 Icon(
-                    imageVector = rememberVideocam(),
+                    imageVector = Icons.Filled.VideoCall,
+                    modifier = Modifier.size(35.dp),
                     contentDescription = "video call",
                 )
             }

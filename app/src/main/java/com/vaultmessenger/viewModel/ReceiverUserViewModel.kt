@@ -13,10 +13,14 @@ class ReceiverUserViewModel(private val repository: ReceiverUserRepository) : Vi
     private val _receiverUser = MutableStateFlow<ReceiverUser?>(null)
     val receiverUser: StateFlow<ReceiverUser?> = _receiverUser
 
+    private val _receiverReady = MutableStateFlow(false)
+    val receiverReady: StateFlow<Boolean> = _receiverReady
+
     init {
         viewModelScope.launch {
             repository.getReceiverUserFlow().collect {
                 _receiverUser.value = it
+                _receiverReady.value = true
             }
         }
     }

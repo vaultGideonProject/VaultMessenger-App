@@ -11,10 +11,11 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.appcompat.app.AppCompatActivity
 import com.vaultmessenger.R
 
-class SetPermissions(private val activity: ComponentActivity) {
+class SetPermissions(
+    private val activity: ComponentActivity
+) {
 
     private val requestPermissionLauncher: ActivityResultLauncher<String> =
         activity.registerForActivityResult(
@@ -26,6 +27,27 @@ class SetPermissions(private val activity: ComponentActivity) {
                 // Handle the case where the user denied the permission.
             }
         }
+
+    private val cameraPermissionRequest: ActivityResultLauncher<String> =
+        activity.registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                setCameraPreview()
+            } else {
+                // Handle permission denied
+            }
+        }
+
+    fun checkAndRequestCameraPermission() {
+        when (ContextCompat.checkSelfPermission(
+            activity,
+            Manifest.permission.CAMERA
+        )) {
+            PackageManager.PERMISSION_GRANTED -> setCameraPreview()
+            else -> cameraPermissionRequest.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     fun checkAndRequestNotificationPermission() {
         when {
@@ -64,5 +86,9 @@ class SetPermissions(private val activity: ComponentActivity) {
                 activity.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
+    }
+
+    private fun setCameraPreview() {
+        // Implement your logic to start the camera preview here
     }
 }

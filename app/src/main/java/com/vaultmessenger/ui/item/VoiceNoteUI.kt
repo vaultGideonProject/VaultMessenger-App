@@ -1,7 +1,10 @@
 package com.vaultmessenger.ui.item
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
@@ -18,44 +21,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import okhttp3.internal.concurrent.formatDuration
 
 @Composable
 fun VoiceNoteUI(
     isPlaying: Boolean,
-    progress: Float, // Progress of the SeekBar (0f to 1f)
-    duration: String, // Format "mm:ss"
-    onPlayPauseClick: () -> Unit // Callback when the play/pause button is clicked
+    progress: Float,
+    duration: String,
+    onPlayPauseClick: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(8.dp)
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        IconButton(
-            onClick = { onPlayPauseClick() }
-        ) {
+        IconButton(onClick = onPlayPauseClick) {
             Icon(
-                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isPlaying) "Pause" else "Play"
+                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                contentDescription = if (isPlaying) "Pause" else "Play",
+                tint = Color.White
             )
         }
-
-        Slider(
-            value = progress,
-            onValueChange = {},
-            modifier = Modifier.weight(1f),
-            colors = SliderDefaults.colors(
-                thumbColor = Color.Gray,
-                activeTrackColor = Color.Green,
-                inactiveTrackColor = Color.LightGray
-            )
-        )
-
-        Text(
-            text = duration,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(start = 8.dp)
-        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = formatDuration(progress.toLong()), color = Color.White)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(text = duration, color = Color.White)
     }
 }

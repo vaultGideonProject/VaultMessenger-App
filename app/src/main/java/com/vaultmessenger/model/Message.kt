@@ -13,5 +13,6 @@ data class Message(
     val timestamp: String = "",
     val userId1: String = "",
     val userId2: String = "",
-    var loading: Boolean = true
+    var loading: Boolean = true,
+    val isTyping: Boolean = false
 )

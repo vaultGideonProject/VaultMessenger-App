@@ -1,28 +1,44 @@
 package com.vaultmessenger.viewModel
 
 import android.content.Context
+import android.util.Log
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vaultmessenger.interfaces.LocalMessageStorage
 import com.vaultmessenger.interfaces.MessageStorage
+import com.vaultmessenger.model.Conversation
 import com.vaultmessenger.model.Message
+import com.vaultmessenger.modules.ChatRepository
+import com.vaultmessenger.modules.VoiceRecorder
 import com.vaultmessenger.viewModel.ConversationViewModel.Companion.MAX_MESSAGE_LENGTH
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
 
 class ChatViewModel(
     private val localStorage: MessageStorage,
-    private val remoteStorage: MessageStorage
+    private val remoteStorage: MessageStorage,
+    private val chatRepository: ChatRepository,
+    context: Context
 ) : ViewModel() {
+
 
     private val _isMessageValid = MutableStateFlow(true)
     val isMessageValid: StateFlow<Boolean> = _isMessageValid.asStateFlow()
 
     private val _validationMessage = MutableStateFlow("")
     val validationMessage: StateFlow<String> = _validationMessage.asStateFlow()
+
+    private var voiceRecorder: VoiceRecorder? = null
+    private var audioFile: File? = null
+
+    init {
+        voiceRecorder = VoiceRecorder(context)
+    }
 
     fun updateMessage(text: String) {
       //  _messageText.value = text
@@ -92,19 +108,74 @@ class ChatViewModel(
             }
         }
     }
-    fun sendVoiceMessage(senderUid: String, receiverUid: String, message: Message) {
+    fun startVoiceRecording(context: Context) {
         viewModelScope.launch {
-            if (message.voiceNoteURL?.isBlank() == true || message.messageText.length > MAX_MESSAGE_LENGTH) {
-                // Handle error for invalid message text
-                return@launch
+            // Define your file path for audio recording
+            audioFile = File(context.cacheDir, "audio_${System.currentTimeMillis()}.mp4")
+            audioFile?.let {
+                voiceRecorder?.start(it)
             }
+        }
+    }
+
+    fun stopVoiceRecording(senderUid: String, receiverUid: String) {
+        viewModelScope.launch {
+            voiceRecorder?.stop(
+                onSuccess = { voiceNoteUrl ->
+                    Log.d("stopVoiceRecording", "VoiceNote URL: $voiceNoteUrl")
+                    if (voiceNoteUrl.isNotEmpty()) {
+                        // Create the voice message object
+                        val voiceMessage = Message(
+                            imageUrl = null,
+                            voiceNoteURL = voiceNoteUrl,
+                            voiceNoteDuration = null,  // Assuming no duration value here
+                            messageText = "",
+                            name = "",
+                            photoUrl = "",
+                            timestamp = System.currentTimeMillis().toString(),
+                            userId1 = senderUid,
+                            userId2 = receiverUid,
+                            loading = false,
+                            isTyping = false
+                        )
+
+                        Log.d("stopVoiceRecording", "VoiceMessage created: $voiceMessage")
+
+                        // Send the voice message
+                        sendVoiceMessage(senderUid, receiverUid, voiceMessage)
+
+                    } else {
+                        Log.e("stopVoiceRecording", "VoiceNote URL is empty")
+                    }
+                },
+                onFailure = { e ->
+                    Log.e("stopVoiceRecording", "Failed to stop and upload voice recording: ${e.message}")
+                }
+            )
+        }
+    }
+
+    private fun sendVoiceMessage(senderUid: String, receiverUid: String, message: Message) {
+        viewModelScope.launch {
             _isLoading.value = true
             try {
-                localStorage.sendMessage(senderUid, receiverUid, message)
-                remoteStorage.sendMessage(senderUid, receiverUid, message)
-                // getMessages(senderUid, receiverUid)
+                message.voiceNoteURL?.let { voiceNoteUrl ->
+                    if (voiceNoteUrl.isNotEmpty()) {
+                        Log.d("sendVoiceMessage", "Sending voice message with URL: $voiceNoteUrl")
+                        chatRepository.sendVoiceMessage(
+                            senderUid = senderUid,
+                            receiverUid = receiverUid,
+                            voiceNoteUrl = voiceNoteUrl
+                        )
+                        Log.d("sendVoiceMessage", "Voice Message sent to DB")
+                    } else {
+                        Log.e("sendVoiceMessage", "VoiceNote URL is empty")
+                    }
+                } ?: run {
+                    Log.e("sendVoiceMessage", "Message's voiceNoteURL is null")
+                }
             } catch (e: Exception) {
-                // Handle error
+                Log.e("sendVoiceMessage", "Voice Message error: $e")
             } finally {
                 _isLoading.value = false
             }

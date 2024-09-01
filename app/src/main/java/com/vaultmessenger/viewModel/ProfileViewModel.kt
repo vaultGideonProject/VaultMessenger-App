@@ -26,6 +26,9 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage:StateFlow<String?> = _errorMessage
 
+    private val _userReady = MutableStateFlow(false)
+    val userReady: StateFlow<Boolean> = _userReady
+
     private var lastFetchTime: Long = 0
     private val cacheExpirationTime = 5 * 60 * 1000 // 5 minutes
 
@@ -43,12 +46,14 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
 
         if (cachedUser != null && (currentTime - lastFetchTime) < cacheExpirationTime) {
             emit(cachedUser)
+            _userReady.value = true
         } else {
             try {
                 val loadedUser = repository.getUser()
                 _user.value = loadedUser
                 lastFetchTime = currentTime
                 emit(loadedUser)
+                _userReady.value = true
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error loading user: ${e.message}", e)
                _errorMessage.value = e.message

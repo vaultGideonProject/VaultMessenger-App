@@ -19,19 +19,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
-import com.vaultmessenger.interfaces.LocalMessageStorage
-import com.vaultmessenger.interfaces.MessageStorage
-import com.vaultmessenger.interfaces.RemoteMessageStorage
-import com.vaultmessenger.model.Message
 import com.vaultmessenger.model.ReceiverUser
 import com.vaultmessenger.model.User
-import com.vaultmessenger.modules.ChatRepository
-import com.vaultmessenger.modules.ConversationRepository
-import com.vaultmessenger.modules.FirebaseUserRepository
 import com.vaultmessenger.modules.LaunchConfigs
-import com.vaultmessenger.modules.NotificationRepository
-import com.vaultmessenger.modules.ReceiverUserRepository
 import com.vaultmessenger.nav.ChatToolbar
 import com.vaultmessenger.ui.item.ChatInputBox
 import com.vaultmessenger.ui.item.ChatListItem
@@ -39,13 +29,9 @@ import com.vaultmessenger.ui.theme.VaultmessengerTheme
 import com.vaultmessenger.viewModel.ChatViewModel
 import com.vaultmessenger.viewModel.ChatViewModelFactory
 import com.vaultmessenger.viewModel.ConversationViewModel
-import com.vaultmessenger.viewModel.ConversationViewModelFactory
-import com.vaultmessenger.viewModel.NotificationsViewModelFactory
 import com.vaultmessenger.viewModel.ProfileViewModel
-import com.vaultmessenger.viewModel.ProfileViewModelFactory
 import com.vaultmessenger.viewModel.ProvideViewModels
 import com.vaultmessenger.viewModel.ReceiverUserViewModel
-import com.vaultmessenger.viewModel.ReceiverUserViewModelFactory
 import kotlinx.coroutines.launch
 import okhttp3.internal.wait
 
@@ -56,8 +42,10 @@ fun ChatScreen(
     receiverUID: String,
     conversationViewModel: ConversationViewModel,
     notificationsViewModel: NotificationsViewModel,
+    receiverUserViewModel: ReceiverUserViewModel,
     profileViewModel: ProfileViewModel,
-    receiverUser: ReceiverUser?,
+    user: User?,
+    receiverUser: ReceiverUser,
     chatViewModel: ChatViewModel,
     listState: LazyListState,
     context: Context
@@ -68,12 +56,13 @@ fun ChatScreen(
 
     // Collecting state lazily in a LaunchedEffect
     val messagesReady by chatViewModel.messagesReady.collectAsState(initial = false)
+    val receiverReady by receiverUserViewModel.receiverReady.collectAsState(initial = false)
+    val userReady by profileViewModel.userReady.collectAsState(initial = false)
     val isMessageValid by chatViewModel.isMessageValid.collectAsState(initial = true)
     val validationMessage by chatViewModel.validationMessage.collectAsState(initial = "")
     val chatMessagesList by chatViewModel.messages.collectAsState(initial = emptyList())
 
     // Observing user profile state
-    val user by profileViewModel.user.collectAsState(initial = null)
     val userList = remember(user) { user }
 
     // Only run launchConfigs if necessary, and lazy run them in a LaunchedEffect
@@ -88,8 +77,8 @@ fun ChatScreen(
     }
 
     // Handling side effects for messagesReady and validationMessage changes
-    LaunchedEffect(messagesReady) {
-        if (messagesReady) {
+    LaunchedEffect(key1 = messagesReady, key2 = receiverReady, key3 = userReady) {
+        if (messagesReady && receiverReady && userReady) {
             fun getChatCount(): Int{
                 return if(chatMessagesList.lastIndex != -1){
                     chatMessagesList.lastIndex
@@ -162,7 +151,8 @@ fun ChatScreen(
                         notificationsViewModel = notificationsViewModel,
                         profileViewModel = profileViewModel,
                         chatViewModel = chatViewModel,
-                        conversationViewModel = conversationViewModel
+                        conversationViewModel = conversationViewModel,
+                        navController = navController
                     )
                 }
             }
@@ -182,7 +172,7 @@ fun ChatScreen(
                     reverseLayout = false // Display messages in reverse chronological order
                 ) {
                     items(chatMessagesList, key = { it.timestamp + 1}) { message ->
-                        ChatListItem(message = message, receiverUID = receiverUID)
+                        ChatListItem(message = message, receiverUID = receiverUID, receiverUser = receiverUser)
                     }
                 }
             }
