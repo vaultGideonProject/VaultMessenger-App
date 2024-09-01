@@ -2,14 +2,16 @@ package com.vaultmessenger.viewModel
 
 import android.annotation.SuppressLint
 import android.app.Application
-import androidx.annotation.OptIn
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class VoiceNoteViewModel(
     application: Application
@@ -20,12 +22,13 @@ class VoiceNoteViewModel(
 
     private val players = mutableMapOf<String, ExoPlayer>()
 
-    @OptIn(UnstableApi::class)
+    private val _currentPlayer = MutableLiveData("")
+   // val currentPlayer: LiveData<String> get() = _currentPlayer
+
+    private var progressUpdateJob: Job? = null
+
     fun setupPlayer(voiceNoteId: String, url: String) {
-        // Release the existing player for the voiceNoteId
-        players[voiceNoteId]?.let { player ->
-            player.release()
-        }
+        players[voiceNoteId]?.release()
 
         val context = getApplication<Application>().applicationContext
         val player = ExoPlayer.Builder(context).build().apply {
@@ -40,40 +43,83 @@ class VoiceNoteViewModel(
                     Player.STATE_READY -> {
                         val durationMs = player.duration
                         updateVoiceNoteState(voiceNoteId) {
-                            it.copy(duration = formatDuration(durationMs))
+                            it.copy(
+                                duration = formatDuration(durationMs),
+                                isBuffering = false // Ensure buffering state is reset
+                            )
                         }
                     }
                     Player.STATE_ENDED -> {
                         updateVoiceNoteState(voiceNoteId) {
-                            it.copy(isPlaying = false, progress = 0f) // Update state on EOF
+                            it.copy(isPlaying = false, progress = 0f, isBuffering = false)
+                        }
+                        progressUpdateJob?.cancel()
+                    }
+                    Player.STATE_BUFFERING -> {
+                        updateVoiceNoteState(voiceNoteId) {
+                            it.copy(isBuffering = true)
                         }
                     }
-                }
-            }
-
-            @Deprecated("Deprecated in Java")
-            override fun onPositionDiscontinuity(reason: Int) {
-                val currentPosition = player.currentPosition
-                updateVoiceNoteState(voiceNoteId) {
-                    it.copy(progress = currentPosition.toFloat() / player.duration)
+                    Player.STATE_IDLE -> {
+                        updateVoiceNoteState(voiceNoteId) {
+                            it.copy(isPlaying = false, progress = 0f, isBuffering = false)
+                        }
+                        progressUpdateJob?.cancel()
+                    }
                 }
             }
         })
 
-        // Update the players map with the new player instance
+
         players[voiceNoteId] = player
     }
 
     fun playPause(voiceNoteId: String) {
+        val currentVoiceNoteId = _currentPlayer.value
+
+        if (currentVoiceNoteId != null && currentVoiceNoteId != voiceNoteId) {
+            val currentPlayer = players[currentVoiceNoteId]
+            currentPlayer?.let {
+                it.playWhenReady = false
+                updateVoiceNoteState(currentVoiceNoteId) { state ->
+                    state.copy(isPlaying = false)
+                }
+                progressUpdateJob?.cancel()
+            }
+        }
+
         val player = players[voiceNoteId] ?: return
         val isPlayingNow = player.isPlaying
+
         updateVoiceNoteState(voiceNoteId) {
             it.copy(isPlaying = !isPlayingNow)
         }
         player.playWhenReady = !isPlayingNow
+
+        if (!isPlayingNow) {
+            startUpdatingProgress(voiceNoteId, player)
+        } else {
+            progressUpdateJob?.cancel()
+        }
+
         if (!player.isPlaying && player.playbackState == Player.STATE_ENDED) {
-            player.seekTo(0) // Reset position if playback has ended
-            player.playWhenReady = true // Automatically start playing from the beginning
+            player.seekTo(0)
+            player.playWhenReady = true
+        }
+
+        _currentPlayer.value = if (isPlayingNow) null else voiceNoteId
+    }
+
+    private fun startUpdatingProgress(voiceNoteId: String, player: ExoPlayer) {
+        progressUpdateJob?.cancel()
+        progressUpdateJob = viewModelScope.launch {
+            while (true) {
+                val progress = player.currentPosition.toFloat() / player.duration
+                updateVoiceNoteState(voiceNoteId) {
+                    it.copy(progress = progress)
+                }
+                delay(500L) // Update progress every 500ms
+            }
         }
     }
 
@@ -98,5 +144,6 @@ class VoiceNoteViewModel(
 data class VoiceNoteState(
     val isPlaying: Boolean = false,
     val progress: Float = 0f,
-    val duration: String = "00:00"
+    val duration: String = "00:00",
+    val isBuffering: Boolean = false
 )
