@@ -7,6 +7,7 @@ import com.google.firebase.firestore.*
 import com.vaultmessenger.model.Conversation
 import com.vaultmessenger.model.Message
 import com.vaultmessenger.modules.ChatRepository.Companion.MESSAGES_COLLECTION
+import com.vaultmessenger.viewModel.ErrorsViewModel
 import com.vaultmessenger.viewModel.ProfileViewModel
 import com.vaultmessenger.viewModel.ProfileViewModelFactory
 import com.vaultmessenger.viewModel.ReceiverUserViewModel
@@ -21,6 +22,7 @@ import java.util.Date
 import java.util.Locale
 
 class ConversationRepository(
+    private val errorsViewModel: ErrorsViewModel
 ) {
     private val auth = FirebaseService.auth
     private val firestore = FirebaseService.firestore
@@ -237,7 +239,7 @@ class ConversationRepository(
         userId: String
     ): ProfileViewModel {
         val userRepository = FirebaseUserRepository(userId)
-        val factory = ProfileViewModelFactory(userRepository)
+        val factory = ProfileViewModelFactory(userRepository, errorsViewModel = errorsViewModel)
         return ViewModelProvider(viewModelStoreOwner!!, factory)
             .get(ProfileViewModel::class.java)
     }
@@ -247,7 +249,7 @@ class ConversationRepository(
         receiverId: String
     ): ReceiverUserViewModel {
         val userRepository = ReceiverUserRepository(receiverId)
-        val factory = ReceiverUserViewModelFactory(userRepository)
+        val factory = ReceiverUserViewModelFactory(userRepository, errorsViewModel)
         return ViewModelProvider(viewModelStoreOwner!!, factory)
             .get(ReceiverUserViewModel::class.java)
     }

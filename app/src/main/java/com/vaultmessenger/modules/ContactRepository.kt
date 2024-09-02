@@ -9,6 +9,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.QuerySnapshot
 import com.vaultmessenger.model.Contact
 import com.vaultmessenger.model.User
+import com.vaultmessenger.viewModel.ErrorsViewModel
 import com.vaultmessenger.viewModel.ReceiverUserViewModel
 import com.vaultmessenger.viewModel.ReceiverUserViewModelFactory
 import kotlinx.coroutines.channels.awaitClose
@@ -16,7 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
-class ContactRepository {
+class ContactRepository(private val errorsViewModel: ErrorsViewModel) {
 
     private val firestore = FirebaseService.firestore
 
@@ -88,7 +89,8 @@ class ContactRepository {
     ): ReceiverUserViewModel {
         val receiverUserRepository = ReceiverUserRepository(receiverId)
         val factory = ReceiverUserViewModelFactory(
-           repository =  receiverUserRepository
+           repository =  receiverUserRepository,
+            errorsViewModel = errorsViewModel,
         )
         return ViewModelProvider(viewModelStoreOwner!!, factory)
             .get(ReceiverUserViewModel::class.java)

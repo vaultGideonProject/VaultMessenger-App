@@ -23,6 +23,7 @@ class ChatViewModel(
     private val localStorage: MessageStorage,
     private val remoteStorage: MessageStorage,
     private val chatRepository: ChatRepository,
+    private val errorsViewModel: ErrorsViewModel,
     context: Context
 ) : ViewModel() {
 
@@ -50,10 +51,12 @@ class ChatViewModel(
             text.isBlank() -> {
                 _isMessageValid.value = false
                 _validationMessage.value = "Message cannot be empty"
+                errorsViewModel.setError("Message cannot be empty")
             }
             text.length > MAX_MESSAGE_LENGTH -> {
                 _isMessageValid.value = false
                 _validationMessage.value = "Message exceeds character limit"
+                errorsViewModel.setError("Message exceeds character limit")
             }
             else -> {
                 _isMessageValid.value = true
@@ -85,6 +88,7 @@ class ChatViewModel(
                // getMessages(senderUid, receiverUid)
             } catch (e: Exception) {
                 // Handle error
+                errorsViewModel.setError(e.message ?: "An error occurred")
             } finally {
                 _isLoading.value = false
             }
@@ -103,6 +107,7 @@ class ChatViewModel(
                 // getMessages(senderUid, receiverUid)
             } catch (e: Exception) {
                 // Handle error
+                errorsViewModel.setError(e.message ?: "An error occurred")
             } finally {
                 _isLoading.value = false
             }
@@ -150,6 +155,7 @@ class ChatViewModel(
                 },
                 onFailure = { e ->
                     Log.e("stopVoiceRecording", "Failed to stop and upload voice recording: ${e.message}")
+                    errorsViewModel.setError(e.message ?: "An error occurred")
                 }
             )
         }
@@ -176,6 +182,7 @@ class ChatViewModel(
                 }
             } catch (e: Exception) {
                 Log.e("sendVoiceMessage", "Voice Message error: $e")
+                errorsViewModel.setError(e.message ?: "An error occurred")
             } finally {
                 _isLoading.value = false
             }
@@ -209,6 +216,7 @@ class ChatViewModel(
                     }
             } catch (e: Exception) {
                 // Handle error
+                errorsViewModel.setError(e.message ?: "An error occurred")
             } finally {
                 _isLoading.value = false
             }

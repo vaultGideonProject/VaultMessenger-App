@@ -41,25 +41,23 @@ import com.vaultmessenger.viewModel.VoiceNoteViewModel
 fun ChatListItem(
     message: Message,
     receiverUID: String,
-    receiverUser: ReceiverUser
+    receiverUser: ReceiverUser,
+    profileViewModel: ProfileViewModel,
+    voiceNoteViewModel: VoiceNoteViewModel,
 ) {
 
     //get Receiver User Profile:
 
 
     //get current User Profile:
-    val userRepository = FirebaseUserRepository() // Create an instance of the repository
-    val userViewModel: ProfileViewModel = viewModel(
-        factory = ProfileViewModelFactory(userRepository)
-    )
-    val userList by userViewModel.user.collectAsState()
+    val userList by profileViewModel.user.collectAsState()
 
     var zoomed by remember { mutableStateOf(true) }
     var zoomOffset by remember { mutableStateOf(Offset.Zero) }
     var imageSize by remember { mutableStateOf(Size.Zero) }
 
     val voiceNoteId = message.voiceNoteURL ?: ""
-    val voiceNoteViewModel: VoiceNoteViewModel = viewModel()
+
     val voiceNoteStates by voiceNoteViewModel.voiceNoteStates.observeAsState(emptyMap())
 
     if (message.voiceNoteURL?.isNotBlank() == true) {
@@ -138,12 +136,9 @@ fun ChatListItem(
                         )
                     }
                 }
-
-            }
-
             }
         }
-
+    }
 }
 // Function to convert Unix timestamp to Date
 fun unixTimestampToDate(timestamp: Long): Date {

@@ -8,7 +8,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class ReceiverUserViewModel(private val repository: ReceiverUserRepository) : ViewModel() {
+class ReceiverUserViewModel(
+    private val repository: ReceiverUserRepository,
+    private val errorsViewModel: ErrorsViewModel,
+) : ViewModel() {
 
     private val _receiverUser = MutableStateFlow<ReceiverUser?>(null)
     val receiverUser: StateFlow<ReceiverUser?> = _receiverUser
@@ -18,22 +21,15 @@ class ReceiverUserViewModel(private val repository: ReceiverUserRepository) : Vi
 
     init {
         viewModelScope.launch {
-            repository.getReceiverUserFlow().collect {
-                _receiverUser.value = it
-                _receiverReady.value = true
+            try {
+                repository.getReceiverUserFlow().collect {
+                    _receiverUser.value = it
+                    _receiverReady.value = true
+                }
+            } catch (e: Exception) {
+                errorsViewModel.setError("Error collecting receiver user flow: ${e.message}")
             }
         }
     }
 
-    fun saveUser(receiverUser: ReceiverUser) {
-        viewModelScope.launch {
-            repository.saveUser(receiverUser)
-        }
-    }
-
-    fun createNewUserAccount() {
-        viewModelScope.launch {
-            repository.createNewUserAccount()
-        }
-    }
 }

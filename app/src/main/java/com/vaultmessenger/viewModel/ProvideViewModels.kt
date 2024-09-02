@@ -1,6 +1,7 @@
 package com.vaultmessenger.viewModel
 
 import NotificationsViewModel
+import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -23,7 +24,10 @@ data class ViewModels(
     val notificationsViewModel: NotificationsViewModel,
     val conversationViewModel: ConversationViewModel,
     val contactsViewModel: ContactsViewModel,
-    val receiverUserViewModel: ReceiverUserViewModel
+    val receiverUserViewModel: ReceiverUserViewModel,
+    val connectivityViewModel: ConnectivityViewModel,
+    val errorsViewModel: ErrorsViewModel,
+    val voiceNoteViewModel: VoiceNoteViewModel,
 )
 
 @Composable
@@ -34,26 +38,39 @@ fun ProvideViewModels(
     val localStorage: MessageStorage = LocalMessageStorage() // Use actual implementation
     val remoteStorage: MessageStorage = RemoteMessageStorage(ChatRepository()) // Use actual implementation
     val chatRepository: ChatRepository = ChatRepository()
+    val errorsViewModel: ErrorsViewModel = viewModel()
    // val context:Context = LocalContext.current
 
-    val chatViewModelFactory = ChatViewModelFactory(localStorage, remoteStorage, chatRepository, context)
-    val chatViewModel: ChatViewModel = viewModel(factory = chatViewModelFactory)
-
     val notificationsViewModel: NotificationsViewModel = viewModel(
-        factory = NotificationsViewModelFactory(NotificationRepository())
+        factory = NotificationsViewModelFactory(NotificationRepository(), errorsViewModel = errorsViewModel)
     )
     val profileViewModel: ProfileViewModel = viewModel(
-        factory = ProfileViewModelFactory(FirebaseUserRepository())
+        factory = ProfileViewModelFactory(FirebaseUserRepository(), errorsViewModel)
     )
     val conversationViewModel: ConversationViewModel = viewModel(
-        factory = ConversationViewModelFactory(ConversationRepository())
+        factory = ConversationViewModelFactory(ConversationRepository(errorsViewModel), errorsViewModel)
     )
     val contactsViewModel: ContactsViewModel = viewModel(
-        factory = ContactsViewModelFactory(ContactRepository())
+        factory = ContactsViewModelFactory(ContactRepository(errorsViewModel))
     )
+    val connectivityViewModel: ConnectivityViewModel = viewModel()
+
     val receiverUserRepository = ReceiverUserRepository(receiverUID)
-    val receiverViewModelFactory = ReceiverUserViewModelFactory(receiverUserRepository)
+    val receiverViewModelFactory = ReceiverUserViewModelFactory(receiverUserRepository, errorsViewModel = errorsViewModel)
     val receiverUserViewModel = viewModel<ReceiverUserViewModel>(factory = receiverViewModelFactory)
+
+    val voiceNoteViewModel: VoiceNoteViewModel = viewModel(
+    factory = VoiceNoteViewModelFactory(LocalContext.current.applicationContext as Application, errorsViewModel)
+    )
+
+    val chatViewModelFactory = ChatViewModelFactory(
+        localStorage,
+        remoteStorage,
+        chatRepository,
+        context,
+        errorsViewModel,
+    )
+    val chatViewModel: ChatViewModel = viewModel(factory = chatViewModelFactory)
 
     return ViewModels(
         chatViewModel,
@@ -61,7 +78,10 @@ fun ProvideViewModels(
         notificationsViewModel,
         conversationViewModel,
         contactsViewModel,
-        receiverUserViewModel
+        receiverUserViewModel,
+        connectivityViewModel,
+        errorsViewModel,
+        voiceNoteViewModel,
         )
 }
 

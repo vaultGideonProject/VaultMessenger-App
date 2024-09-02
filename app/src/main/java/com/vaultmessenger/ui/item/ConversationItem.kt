@@ -26,6 +26,8 @@ import androidx.navigation.NavHostController
 import com.vaultmessenger.ProfileImage
 import com.vaultmessenger.model.Conversation
 import com.vaultmessenger.modules.ReceiverUserRepository
+import com.vaultmessenger.viewModel.ErrorsViewModel
+import com.vaultmessenger.viewModel.ProfileViewModel
 import com.vaultmessenger.viewModel.ReceiverUserViewModel
 import com.vaultmessenger.viewModel.ReceiverUserViewModelFactory
 
@@ -34,6 +36,7 @@ fun ConversationItem(
     conversation: Conversation,
     navController: NavHostController,
     userId: String?,
+    errorsViewModel: ErrorsViewModel
 ) {
     val otherUserIdKey = if (conversation.userIds["userId1"] == userId) "userId2" else "userId1"
     val otherUserNameKey = if (conversation.userIds["userId1"] == userId) "userName2" else "userName1"
@@ -43,7 +46,7 @@ fun ConversationItem(
 
     // Access the receiver user's ViewModel directly
     val receiverUserRepository = ReceiverUserRepository(receiverUID)
-    val receiverViewModelFactory = ReceiverUserViewModelFactory(receiverUserRepository)
+    val receiverViewModelFactory = ReceiverUserViewModelFactory(receiverUserRepository, errorsViewModel)
     val receiverUserViewModel: ReceiverUserViewModel = viewModel(factory = receiverViewModelFactory)
     val receiverUser by receiverUserViewModel.receiverUser.collectAsState()
 

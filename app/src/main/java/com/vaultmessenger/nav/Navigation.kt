@@ -40,7 +40,12 @@ fun Navigation() {
         profileViewModel,
         notificationsViewModel,
         conversationViewModel,
-        contactsViewModel) = ProvideViewModels(context)
+        contactsViewModel,
+        _,
+        connectivityViewModel,
+        errorsViewModel,
+        voiceNoteViewModel,
+        ) = ProvideViewModels(context)
 
 
     NavHost(navController = navController, startDestination = "splash") {
@@ -54,19 +59,22 @@ fun Navigation() {
             })
         }
         composable(route = "sign_in") {
-            SignInScreen(navController)
+            SignInScreen(navController, profileViewModel)
         }
         composable(route = "main") {
             ConversationList(
                 navController = navController,
                 profileViewModel = profileViewModel,
-                conversationViewModel = conversationViewModel
+                conversationViewModel = conversationViewModel,
+                connectivityViewModel = connectivityViewModel,
+                errorsViewModel = errorsViewModel,
             )
         }
         composable(route = "Profile") {
             ProfileScreen(
                 navController = navController,
-                profileViewModel = profileViewModel
+                profileViewModel = profileViewModel,
+                errorsViewModel = errorsViewModel
             )
         }
         composable(route = "contacts") {
@@ -123,11 +131,12 @@ fun Navigation() {
                         context = context,
                         receiverUserViewModel = receiverUserViewModel,
                         profileViewModel = profileViewModel,
+                        errorsViewModel = errorsViewModel,
+                        voiceNoteViewModel = voiceNoteViewModel
                     )
                 }
             } else {
-                // Handle the error case if senderUID or receiverUID is null
-                //Text("Error: Missing sender or receiver information")
+                errorsViewModel.setError("Failed to Open Chats")
             }
         }
 

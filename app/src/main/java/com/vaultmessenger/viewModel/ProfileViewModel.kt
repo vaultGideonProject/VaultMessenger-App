@@ -17,8 +17,20 @@ import kotlinx.coroutines.tasks.await
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewModel() {
-    private val _user = MutableStateFlow<User?>(null)
+class ProfileViewModel(
+    private val repository: FirebaseUserRepository,
+    private val errorsViewModel: ErrorsViewModel,
+    ) : ViewModel() {
+    private val _user = MutableStateFlow<User?>(User(
+        userId = "",
+        userName ="",
+        hashUserId = "",
+        profilePictureUrl = "",
+        bio = "",
+        email ="",
+        nickName = "",
+        dob = "",
+        status = ""))
     val user: StateFlow<User?> get() = _user
 
     private val _onlineStatus = MutableStateFlow("offline")
@@ -55,6 +67,7 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
                 emit(loadedUser)
                 _userReady.value = true
             } catch (e: Exception) {
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 Log.e("ProfileViewModel", "Error loading user: ${e.message}", e)
                _errorMessage.value = e.message
 
@@ -94,6 +107,7 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
                 _user.value = user
                 lastFetchTime = System.currentTimeMillis()
             } catch (e: Exception) {
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 Log.e("ProfileViewModel", "Error saving user: ${e.message}", e)
                 _errorMessage.value = e.message
             }
@@ -109,6 +123,7 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
                     lastFetchTime = System.currentTimeMillis()
                 }
             } catch (e: Exception) {
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 Log.e("ProfileViewModel", "Error refreshing user: ${e.message}", e)
                 _errorMessage.value = e.message
             }
@@ -120,6 +135,7 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
             try {
                 repository.updateOnlineStatus(userId, status)
             } catch (e: Exception) {
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 Log.e("ProfileViewModel", "Error updating online status: ${e.message}", e)
                 _errorMessage.value = e.message
             }
@@ -132,6 +148,7 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
                 val isOnline = repository.isUserOnlineStatus(userId)
                 callback(isOnline)
             } catch (e: Exception) {
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 Log.e("ProfileViewModel", "Error checking online status: ${e.message}", e)
                 _errorMessage.value = e.message
                 callback(false)
@@ -152,6 +169,7 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
                     }
                 }
             } catch (e: Exception) {
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 Log.e("ProfileViewModel", "Error updating token: ${e.message}", e)
                 _errorMessage.value = e.message
             }
@@ -166,6 +184,7 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
                     continuation.resume(currentToken)
                 }
             } catch (e: Exception) {
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 Log.e("ProfileViewModel", "Error fetching token: ${e.message}", e)
                 _errorMessage.value = e.message
                 if (continuation.isActive) {
@@ -185,17 +204,12 @@ class ProfileViewModel(private val repository: FirebaseUserRepository) : ViewMod
                     navController.navigate("sign_in")
                 }
             } catch (e: Exception) {
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 Log.e("ProfileViewModel", "Error checking account lock status: ${e.message}", e)
                 _errorMessage.value = e.message
                 navController.navigate("sign_in")
             }
         }
     }
-    fun clearError(){
-        _errorMessage.value = null
-    }
 
-    fun setError(errorMessage: String) {
-        _errorMessage.value = errorMessage
-    }
 }

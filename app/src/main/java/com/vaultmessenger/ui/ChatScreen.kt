@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -25,13 +26,16 @@ import com.vaultmessenger.modules.LaunchConfigs
 import com.vaultmessenger.nav.ChatToolbar
 import com.vaultmessenger.ui.item.ChatInputBox
 import com.vaultmessenger.ui.item.ChatListItem
+import com.vaultmessenger.ui.item.ChatScrollDownButton
 import com.vaultmessenger.ui.theme.VaultmessengerTheme
 import com.vaultmessenger.viewModel.ChatViewModel
 import com.vaultmessenger.viewModel.ChatViewModelFactory
 import com.vaultmessenger.viewModel.ConversationViewModel
+import com.vaultmessenger.viewModel.ErrorsViewModel
 import com.vaultmessenger.viewModel.ProfileViewModel
 import com.vaultmessenger.viewModel.ProvideViewModels
 import com.vaultmessenger.viewModel.ReceiverUserViewModel
+import com.vaultmessenger.viewModel.VoiceNoteViewModel
 import kotlinx.coroutines.launch
 import okhttp3.internal.wait
 
@@ -48,7 +52,9 @@ fun ChatScreen(
     receiverUser: ReceiverUser,
     chatViewModel: ChatViewModel,
     listState: LazyListState,
-    context: Context
+    context: Context,
+    errorsViewModel: ErrorsViewModel,
+    voiceNoteViewModel: VoiceNoteViewModel,
 ) {
 
     // Use remember to avoid recomputing these variables unnecessarily
@@ -61,9 +67,21 @@ fun ChatScreen(
     val isMessageValid by chatViewModel.isMessageValid.collectAsState(initial = true)
     val validationMessage by chatViewModel.validationMessage.collectAsState(initial = "")
     val chatMessagesList by chatViewModel.messages.collectAsState(initial = emptyList())
-
+    val snackbarHostState = remember { SnackbarHostState() }
+    val errorMessage by errorsViewModel.errorMessage.observeAsState(initial = "")
+    val currentErrorMessage by rememberUpdatedState(errorMessage)
+    val scope = rememberCoroutineScope()
     // Observing user profile state
     val userList = remember(user) { user }
+    val scrollState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // Logic to check if the user is not at the bottom of the list
+    val isScrolledToEnd by remember {
+        derivedStateOf {
+            scrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == scrollState.layoutInfo.totalItemsCount - 1
+        }
+    }
 
     // Only run launchConfigs if necessary, and lazy run them in a LaunchedEffect
     LaunchedEffect(Unit) {
@@ -96,9 +114,22 @@ fun ChatScreen(
         }
     }
 
+    // Use SideEffect to respond to state changes
+    SideEffect {
+        currentErrorMessage?.takeIf { it.isNotBlank() }?.let { message ->
+            scope.launch {
+                snackbarHostState.showSnackbar(message)
+            }
+            errorsViewModel.clearError()
+        }
+    }
+
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         topBar = {
-            receiverUser?.let {
+            receiverUser.let {
                 ChatToolbar(
                     navController = navController,
                     receiverUID = it.userName,
@@ -107,6 +138,8 @@ fun ChatScreen(
             }
         },
         bottomBar = {
+            ChatScrollDownButton({ null })
+            Spacer(modifier = Modifier.height(20.dp))
             userList?.let { senderUser ->
                 receiverUser?.let { receiverUser ->
                     ChatInputBox(
@@ -132,7 +165,7 @@ fun ChatScreen(
 
                             chatViewModel.viewModelScope.launch {
                                 chatViewModel.sendMessage(
-                                    receiverUid = receiverUID!!,
+                                    receiverUid = receiverUID,
                                     senderUid = senderUID!!, // Assumes senderUID is non-null here
                                     message = message
                                 )
@@ -140,7 +173,7 @@ fun ChatScreen(
                             conversationViewModel.viewModelScope.launch {
                                 conversationViewModel.setConversationBySenderId(
                                     senderId = senderUID!!,
-                                    receiverId = receiverUID!!,
+                                    receiverId = receiverUID,
                                     viewModelStoreOwner = viewModelStoreOwner,
                                     message = message)
                             }
@@ -172,7 +205,7 @@ fun ChatScreen(
                     reverseLayout = false // Display messages in reverse chronological order
                 ) {
                     items(chatMessagesList, key = { it.timestamp + 1}) { message ->
-                        ChatListItem(message = message, receiverUID = receiverUID, receiverUser = receiverUser)
+                        ChatListItem(message = message, receiverUID = receiverUID, receiverUser = receiverUser, profileViewModel, voiceNoteViewModel)
                     }
                 }
             }

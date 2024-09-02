@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class ConversationViewModel(
-    private val conversationRepository: ConversationRepository
+    private val conversationRepository: ConversationRepository,
+    private val errorsViewModel: ErrorsViewModel,
 ) : ViewModel() {
     private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
     val conversations: StateFlow<List<Conversation>> get() = _conversations
@@ -41,6 +42,7 @@ class ConversationViewModel(
                     _conversations.value = conversations
                 }
             }catch (e:Exception){
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 return@launch
             }
         }
@@ -75,6 +77,7 @@ class ConversationViewModel(
                 )
             } catch (e: Exception) {
                 // Handle error
+                errorsViewModel.setError(e.message ?: "An error occurred")
                 return@launch
             }
         }

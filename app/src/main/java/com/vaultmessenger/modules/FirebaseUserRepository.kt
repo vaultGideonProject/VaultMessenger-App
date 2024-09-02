@@ -41,9 +41,9 @@ class FirebaseUserRepository(private val uid: String? = null) {
             return null
         }
 
-        return try {
-            val userRef = firestore.collection("users").document(userId)
+        val userRef = firestore.collection("users").document(userId)
 
+        return try {
             // Attempt to get the document from the server first
             val documentSnapshot = userRef.get(Source.SERVER).await()
 
@@ -56,19 +56,34 @@ class FirebaseUserRepository(private val uid: String? = null) {
                         userRef.update("hashUserId", hashedUserId).await()
                     }
                 }
-                // Send data to cache
-                userRef.get(Source.CACHE).await() // Fetch from cache to ensure it's stored
                 return user
             } else {
+                // User document does not exist on the server, attempt to create a new one
                 createNewUserAccount()
-                val newUserSnapshot = userRef.get(Source.CACHE).await()
-                return newUserSnapshot.toObject(User::class.java)
+                val newUserSnapshot = userRef.get(Source.CACHE).await() // Fetch from cache after creation
+                newUserSnapshot.toObject(User::class.java)
+            }
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                // Network is unavailable, fallback to cache
+                Log.w("FirebaseUserRepository", "Network unavailable, falling back to cache")
+                try {
+                    val cachedSnapshot = userRef.get(Source.CACHE).await()
+                    cachedSnapshot.toObject(User::class.java)
+                } catch (cacheException: Exception) {
+                    Log.e("FirebaseUserRepository", "Error getting user from cache: ${cacheException.message}", cacheException)
+                    null
+                }
+            } else {
+                Log.e("FirebaseUserRepository", "Error getting user: ${e.message}", e)
+                null
             }
         } catch (e: Exception) {
             Log.e("FirebaseUserRepository", "Error getting user: ${e.message}", e)
-            return null
+            null
         }
     }
+
 
 
     suspend fun createNewUserAccount() {

@@ -42,15 +42,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Composable
-fun SignInScreen(navController: NavHostController) {
+fun SignInScreen(
+    navController: NavHostController,
+    profileViewModel: ProfileViewModel,
+    ) {
     val auth = FirebaseService.auth
     var userAuth by remember { mutableStateOf(auth.currentUser) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val repository = FirebaseUserRepository()
-    val viewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory(repository))
-    val user by viewModel.user.collectAsState()
+    val user by profileViewModel.user.collectAsState()
     var retryAttempts by remember { mutableIntStateOf(0) }
 
 
@@ -59,7 +60,7 @@ fun SignInScreen(navController: NavHostController) {
         retryAttempts = 0
         while (retryAttempts < 5) {
             try {
-                viewModel.user
+                profileViewModel.user
                 break // Exit the loop if successful
             } catch (e: Exception) {
                 retryAttempts++
@@ -76,7 +77,7 @@ fun SignInScreen(navController: NavHostController) {
     // Launch effect to navigate based on user state
     LaunchedEffect(user) {
         if (user != null && userAuth != null) {
-            viewModel.refreshUser()
+            profileViewModel.refreshUser()
             navController.navigate("main")
         }
     }
@@ -86,7 +87,7 @@ fun SignInScreen(navController: NavHostController) {
             userAuth = result.user
             isLoading = false
             // Fetch user data and update state
-            viewModel.refreshUser()
+            profileViewModel.refreshUser()
             navController.navigate("main")
         },
         onAuthError = { exception ->
@@ -159,7 +160,7 @@ fun SignInScreen(navController: NavHostController) {
                             )
                         }
                     }else{
-                        viewModel.refreshUser()
+                        profileViewModel.refreshUser()
                         navController.navigate("main")
                     }
                 }

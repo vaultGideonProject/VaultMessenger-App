@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +41,8 @@ import com.vaultmessenger.ui.theme.VaultmessengerTheme
 import com.vaultmessenger.viewModel.ProfileViewModel
 import com.vaultmessenger.modules.FirebaseService
 import com.vaultmessenger.modules.LaunchConfigs
+import com.vaultmessenger.viewModel.ErrorsViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -47,7 +50,8 @@ import java.util.UUID
 @Composable
 fun ProfileScreen(
     navController: NavHostController,
-    profileViewModel: ProfileViewModel
+    profileViewModel: ProfileViewModel,
+    errorsViewModel: ErrorsViewModel,
     ) {
 
 
@@ -79,8 +83,6 @@ fun ProfileScreen(
         mutableStateOf(user?.bio.orEmpty())
     }
 
-
-
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -96,6 +98,19 @@ fun ProfileScreen(
         }
     }
     val encodedUserId = Encoder.encodeWithSHA256(user?.userId)
+
+    val errorMessage by errorsViewModel.errorMessage.observeAsState(initial = "")
+    val currentErrorMessage by rememberUpdatedState(errorMessage)
+    val scope = rememberCoroutineScope()
+
+    SideEffect {
+        currentErrorMessage.takeIf { it.isNotBlank() }?.let { message ->
+            scope.launch {
+                snackbarHostState.showSnackbar(message)
+            }
+            errorsViewModel.clearError()
+        }
+    }
 
     Scaffold(
         containerColor = Color.White,
@@ -161,7 +176,11 @@ fun ProfileScreen(
                     )
                     Spacer(modifier = Modifier.padding(5.dp))
                     if (encodedUserId != null) {
-                        CopyableText(text = encodedUserId)
+                        CopyableText(
+                            text = encodedUserId,
+                            scope = scope,
+                            snackbarHostState = snackbarHostState
+                            )
                     }
                 }
 
@@ -256,7 +275,7 @@ fun copyToClipboard(context: Context?, label: String, text: String) {
 }
 
 @Composable
-fun CopyableText(text: String) {
+fun CopyableText(text: String, scope: CoroutineScope, snackbarHostState: SnackbarHostState) {
     val context = LocalContext.current
 
     Text(
@@ -264,9 +283,9 @@ fun CopyableText(text: String) {
         modifier = Modifier
             .clickable {
                 copyToClipboard(context, "Account Handle", text)
-                Toast
-                    .makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT)
-                    .show()
+                scope.launch {
+                    snackbarHostState.showSnackbar("Hash Copied")
+                }
             }
             .padding(16.dp), // Adjust padding as needed
         overflow = TextOverflow.Ellipsis // Handle overflow if needed

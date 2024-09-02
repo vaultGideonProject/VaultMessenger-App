@@ -15,15 +15,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +41,9 @@ import com.vaultmessenger.DrawerContent
 import com.vaultmessenger.ProfileIcon
 import com.vaultmessenger.modules.FirebaseService
 import com.vaultmessenger.ui.item.ConversationItem
+import com.vaultmessenger.viewModel.ConnectivityViewModel
 import com.vaultmessenger.viewModel.ConversationViewModel
+import com.vaultmessenger.viewModel.ErrorsViewModel
 import com.vaultmessenger.viewModel.ProfileViewModel
 import com.vaultmessenger.viewModel.ReceiverUserViewModel
 import kotlinx.coroutines.launch
@@ -46,11 +54,17 @@ fun ConversationList(
     navController: NavHostController,
     profileViewModel: ProfileViewModel,
     conversationViewModel: ConversationViewModel,
+    connectivityViewModel: ConnectivityViewModel,
+    errorsViewModel: ErrorsViewModel,
 ) {
     val auth = FirebaseService.auth
     val userId = auth.currentUser?.uid ?: return
     val user by profileViewModel.user.collectAsState()
     val conversations by conversationViewModel.conversations.collectAsState(emptyList())
+    val isConnected by connectivityViewModel.isConnected.observeAsState(true)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val errorMessage by errorsViewModel.errorMessage.observeAsState(initial = "")
+    val currentErrorMessage by rememberUpdatedState(errorMessage)
 
     // val snackbarHostState = remember { SnackbarHostState() }
     // val errorMessage by profileViewModel.errorMessage.collectAsState()
@@ -64,6 +78,16 @@ fun ConversationList(
         profileViewModel.updateOnlineStatus(userId, "online")
     }
 
+    // Use SideEffect to respond to state changes
+    SideEffect {
+        currentErrorMessage?.takeIf { it.isNotBlank() }?.let { message ->
+            scope.launch {
+                snackbarHostState.showSnackbar(message)
+            }
+            errorsViewModel.clearError()
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -71,11 +95,14 @@ fun ConversationList(
         }
     ) {
         Scaffold(
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState)
+            },
             topBar = {
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Vault Messenger",
+                            text = if(isConnected){"Vault Messenger"}else{"NO INTERNET"},
                             color = Color(0xFFFAFAFA),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
@@ -99,7 +126,9 @@ fun ConversationList(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF0D62CA)
+                        containerColor = if(isConnected){Color(0xFF0D62CA)}else{
+                            Color(0xFFDA342E)
+                        }
                     )
                 )
             },
@@ -123,7 +152,8 @@ fun ConversationList(
                     ConversationItem(
                         conversation = conversation,
                         navController = navController,
-                        userId = userId
+                        userId = userId,
+                        errorsViewModel = errorsViewModel
                     )
                 }
             }

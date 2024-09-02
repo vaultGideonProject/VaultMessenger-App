@@ -87,9 +87,13 @@ import com.vaultmessenger.notifications.SetPermissions
 import android.os.Handler
 import android.os.Looper
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
@@ -101,14 +105,18 @@ import com.vaultmessenger.modules.FirebaseService
 import com.vaultmessenger.modules.LaunchConfigs
 import com.vaultmessenger.ui.item.ConversationItem
 import com.vaultmessenger.ui.item.UserProfile
+import com.vaultmessenger.viewModel.ErrorsViewModel
 import java.util.UUID
 
 
 class MainActivity : ComponentActivity() {
     private val userRepository by lazy { FirebaseUserRepository() }
+    private val errorsViewModel: ErrorsViewModel by viewModels()
     private val userViewModel by lazy {
-        ViewModelProvider(this, ProfileViewModelFactory(userRepository)).get(ProfileViewModel::class.java)
+        ViewModelProvider(this, ProfileViewModelFactory(userRepository, errorsViewModel)).get(ProfileViewModel::class.java)
     }
+
+
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -280,7 +288,7 @@ fun DrawerContent(user: User?, navController: NavHostController) {
             Spacer(modifier = Modifier.height(40.dp))
             SettingsRow()
             Spacer(modifier = Modifier.height(10.dp))
-            ProfileRow()
+            ProfileRow(navController = navController)
             SignOutButton(navController)
         }
     }
@@ -329,12 +337,18 @@ fun SettingsRow() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ProfileRow() {
+fun ProfileRow(navController: NavHostController) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .padding(horizontal = 16.dp)
+            .combinedClickable(
+                onClick = {
+                    navController.navigate("profile")
+                }
+            )
     ) {
         Icon(
             imageVector = Icons.Filled.Person,
