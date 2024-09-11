@@ -8,15 +8,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.vaultmessenger.interfaces.LocalMessageStorage
-import com.vaultmessenger.interfaces.MessageStorage
-import com.vaultmessenger.interfaces.RemoteMessageStorage
 import com.vaultmessenger.modules.ChatRepository
 import com.vaultmessenger.modules.ContactRepository
 import com.vaultmessenger.modules.ConversationRepository
 import com.vaultmessenger.modules.FirebaseUserRepository
 import com.vaultmessenger.modules.NotificationRepository
 import com.vaultmessenger.modules.ReceiverUserRepository
+import com.vaultmessenger.shared_repository.SharedMessageRepository
 
 data class ViewModels(
     val chatViewModel: ChatViewModel,
@@ -33,13 +31,10 @@ data class ViewModels(
 @Composable
 fun ProvideViewModels(
     context: Context,
-    receiverUID:String? = null
+    receiverUID:String? = "guest",
+    senderUID:String,
 ): ViewModels {
-    val localStorage: MessageStorage = LocalMessageStorage() // Use actual implementation
-    val remoteStorage: MessageStorage = RemoteMessageStorage(ChatRepository()) // Use actual implementation
-    val chatRepository: ChatRepository = ChatRepository()
     val errorsViewModel: ErrorsViewModel = viewModel()
-   // val context:Context = LocalContext.current
 
     val notificationsViewModel: NotificationsViewModel = viewModel(
         factory = NotificationsViewModelFactory(NotificationRepository(), errorsViewModel = errorsViewModel)
@@ -64,11 +59,11 @@ fun ProvideViewModels(
     )
 
     val chatViewModelFactory = ChatViewModelFactory(
-        localStorage,
-        remoteStorage,
-        chatRepository,
         context,
         errorsViewModel,
+        conversationViewModel,
+        senderUID = senderUID,
+        receiverUID = receiverUID!!,
     )
     val chatViewModel: ChatViewModel = viewModel(factory = chatViewModelFactory)
 

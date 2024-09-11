@@ -1,123 +1,136 @@
 package com.vaultmessenger.modules
 
 import android.util.Log
+import androidx.compose.runtime.internal.illegalDecoyCallException
+import androidx.media3.common.C.DATA_TYPE_MEDIA
+import androidx.media3.common.C.DataType
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.HttpsCallableResult
+import com.google.gson.Gson
 import com.vaultmessenger.model.Message
+import com.vaultmessenger.viewModel.ChatViewModel
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.flow
+import org.json.JSONObject
+import java.net.URL
 
 class ChatRepository {
+
     companion object {
         const val MESSAGES_COLLECTION = "messages"
     }
 
-    // Access FirebaseAuth
-    private val auth = FirebaseService.auth
+    private val functions = FirebaseService.functions
 
-    // Access Firestore
-    private val firestore = FirebaseService.firestore
-
-    // Access FirebaseStorage
-    private val storage = FirebaseService.storage
+    // Function to send a message using Cloud Function
 
 
-   // private private val firestore = firestore
-
-    // Function to send a message
     suspend fun sendMessage(senderUid: String, receiverUid: String, message: Message) {
+        val data = hashMapOf(
+            "senderUid" to senderUid,
+            "receiverUid" to receiverUid,
+            "message" to Gson().toJson(message) // Convert Message to JSON string
+        )
         try {
-            val messagesCollectionSender = firestore.collection(MESSAGES_COLLECTION)
-                .document(senderUid)
-                .collection(receiverUid)
+            val endpointSendMessage = URL(
+                "https://europe-west3-vaultmessengerdev.cloudfunctions.net/sendMessage"
+            )
+            val result = functions.getHttpsCallableFromUrl(endpointSendMessage)
+                .call(data)
+                .await()
 
-            val messagesCollectionReceiver = firestore.collection(MESSAGES_COLLECTION)
-                .document(receiverUid)
-                .collection(senderUid)
-
-            // Add the message to both sender's and receiver's collections
-            messagesCollectionSender.add(message).await()
-            messagesCollectionReceiver.add(message).await()
-
-            Log.d("sendMessage Success", "Message sent successfully from $senderUid to $receiverUid")
+            // Retrieve and process messages after sending
+            val messagesFlow = getMessagesFlow(senderUid = senderUid, receiverUid = receiverUid)
+            messagesFlow.collect { messages ->
+                // Handle the retrieved messages (e.g., update UI or process data)
+               // Log.d("getMessagesFlow", "Retrieved messages: $messages")
+            }
+            // Log the result to verify the structure
+           // Log.d("sendMessage", "Result data: ${result.data}")
+            Log.d(
+                "sendMessage Success",
+                "Message sent successfully from $senderUid to $receiverUid"
+            )
         } catch (e: Exception) {
             Log.e("sendMessage Failed", "Error sending message: ${e.message}", e)
         }
+
     }
 
-    // Function to send a voice message
-    suspend fun sendVoiceMessage(
-        senderUid: String,
-        receiverUid: String,
-        voiceNoteUrl: String,
-        messageText: String? = null
-    ) {
-        val message = Message(
-            messageText = messageText ?: "",  // Use an empty string if messageText is null
-            voiceNoteURL = voiceNoteUrl,
-            userId1 = senderUid,
-            userId2 = receiverUid,
-            timestamp = System.currentTimeMillis().toString()
-        )
-        sendMessage(senderUid, receiverUid, message)
-    }
-
-
-    // Function to retrieve messages between two users in real-time
+    // Function to retrieve messages using Cloud Function
     // fixed issue of making too many network calls, now caching to firebase
-    fun getMessagesFlow(senderUid: String, receiverUid: String): Flow<List<Message>> = callbackFlow {
-        // Register real-time updates listener
-        val collectionRef = firestore.collection(MESSAGES_COLLECTION)
-            .document(senderUid)
-            .collection(receiverUid)
-            .orderBy("timestamp", Query.Direction.ASCENDING)
+    suspend fun getMessagesFlow(senderUid: String, receiverUid: String): Flow<List<Message>> {
+        return flow {
 
-        // Attempt to retrieve cached data first
-        collectionRef.get(Source.CACHE)
-            .addOnSuccessListener { documents ->
-                val cachedMessages = documents.toObjects(Message::class.java)
-                trySend(cachedMessages).isSuccess
-            }
-            .addOnFailureListener { e ->
-                // Handle the error if there's an issue fetching from the cache
-                Log.e("getMessagesFlow", "Error getting cached messages: ${e.message}", e)
-                // Optionally: Close the flow or handle it in a specific way
-            }
+            try {
+                val endpointGetMessages = URL(
+                    "https://europe-west3-vaultmessengerdev.cloudfunctions.net/getMessages"
+                )
+                val result = functions.getHttpsCallableFromUrl(endpointGetMessages)
+                    .call(mapOf("senderUid" to senderUid, "receiverUid" to receiverUid))
+                    .await()
 
-        // Register real-time updates listener
-        val listenerRegistration = collectionRef.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error) // Close the flow if there's an error
-                return@addSnapshotListener
-            }
-            if (snapshot != null) {
-                val messages = snapshot.toObjects(Message::class.java)
-                trySend(messages).isSuccess // Emit the updated list of messages
-            }
-        }
+                // Process the response
+                val data = result.data as? Map<*, *>
+                val success = data?.get("success") as? Boolean ?: false
 
-        // Ensure the listener is removed when the flow is closed
-        awaitClose {
-            listenerRegistration.remove()
+                Log.d("getMessagesFlow", "status ${success.equals(true)}")
+
+                if (success.toString().isNotEmpty()) {
+                    val messagesList = data?.get("message") as? List<Map<String, Any>> ?: emptyList()
+                    val messages = messagesList.map { map ->
+                        Message(
+                            id = (map["id"] as? Number)?.toInt() ?: 0,
+                            conversationId = map["conversationId"] as? String,
+                            imageUrl = map["imageUrl"] as? String,
+                            voiceNoteURL = map["voiceNoteURL"] as? String,
+                            voiceNoteDuration = map["voiceNoteDuration"] as? String,
+                            messageText = map["messageText"] as? String ?: "",
+                            name = map["name"] as? String ?: "",
+                            photoUrl = map["photoUrl"] as? String ?: "",
+                            timestamp = map["timestamp"] as? String ?: "",
+                            userId1 = map["userId1"] as? String ?: "",
+                            userId2 = map["userId2"] as? String ?: "",
+                            loading = map["loading"] as? Boolean ?: true,
+                            isTyping = map["isTyping"] as? Boolean ?: false
+                        )
+                    }
+                    emit(messages)
+                } else {
+
+                    // Handle failure case
+                    emit(emptyList())
+                    throw illegalDecoyCallException("Failed to get Message List is Empty")
+
+                }
+            } catch (e: Exception) {
+                // Handle error case
+               // emit(emptyList())
+            }
         }
     }
 
-    // Function to delete a specific message
+    // Function to delete a message using Cloud Function
     suspend fun deleteMessage(senderUid: String, receiverUid: String, messageId: String) {
-        firestore.collection(MESSAGES_COLLECTION)
-            .document(senderUid)
-            .collection(receiverUid)
-            .document(messageId)
-            .delete()
-            .await()
+        val data = hashMapOf(
+            "senderUid" to senderUid,
+            "receiverUid" to receiverUid,
+            "messageId" to messageId
+        )
 
-        firestore.collection(MESSAGES_COLLECTION)
-            .document(receiverUid)
-            .collection(senderUid)
-            .document(messageId)
-            .delete()
-            .await()
+        try {
+            functions.getHttpsCallable("deleteMessage")
+                .call(data)
+                .await()
+            Log.d("deleteMessage Success", "Message deleted successfully")
+        } catch (e: Exception) {
+            Log.e("deleteMessage Failed", "Error deleting message: ${e.message}", e)
+        }
     }
 }

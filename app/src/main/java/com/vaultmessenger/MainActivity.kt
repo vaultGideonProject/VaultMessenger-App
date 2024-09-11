@@ -1,4 +1,5 @@
 package com.vaultmessenger
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -94,12 +95,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.room.Room
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.initialize
 import com.google.firebase.messaging.FirebaseMessaging
+import com.vaultmessenger.database.AppDatabase
 import com.vaultmessenger.model.User
 import com.vaultmessenger.modules.FirebaseService
 import com.vaultmessenger.modules.LaunchConfigs
@@ -116,7 +119,7 @@ class MainActivity : ComponentActivity() {
         ViewModelProvider(this, ProfileViewModelFactory(userRepository, errorsViewModel)).get(ProfileViewModel::class.java)
     }
 
-
+  // val database by lazy { AppDatabase.getDatabase(this) }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -518,9 +521,6 @@ fun SignOutAnimation() {
             style = MaterialTheme.typography.bodySmall
         )
     }
-}
-fun randomNumberGen(): UUID? {
-    return UUID.randomUUID()
 }
 
 @Preview(showBackground = true)

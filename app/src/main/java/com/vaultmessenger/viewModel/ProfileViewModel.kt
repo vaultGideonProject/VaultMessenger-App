@@ -22,9 +22,9 @@ class ProfileViewModel(
     private val errorsViewModel: ErrorsViewModel,
     ) : ViewModel() {
     private val _user = MutableStateFlow<User?>(User(
-        userId = "",
+        userId = "guest",
         userName ="",
-        hashUserId = "",
+        hashUserId = "guest",
         profilePictureUrl = "",
         bio = "",
         email ="",

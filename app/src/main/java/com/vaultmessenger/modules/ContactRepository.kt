@@ -16,6 +16,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import java.security.MessageDigest
 
 class ContactRepository(private val errorsViewModel: ErrorsViewModel) {
 
@@ -47,19 +48,31 @@ class ContactRepository(private val errorsViewModel: ErrorsViewModel) {
         return this.documents.mapNotNull { it.toObject(Contact::class.java) }
     }
 
-    private suspend fun addContactFromUser(userId: String, contactHashUserId: String): Int {
+    private suspend fun addContactFromUser(userId: String, contactUserId: String): Boolean {
         return try {
-            // Step 1: Get all user documents
-            val usersCollection = firestore.collection("users")
-            val allUsersQuery = usersCollection.get().await()
+            // Step 1: Hash the contactUserId
+            val hashedContactUserId = hashSHA256(contactUserId)
 
-            // Step 2: Find the document where hashUserId matches
-            val userDoc = allUsersQuery.documents.firstOrNull { document ->
-                document.getString("hashUserId") == contactHashUserId
-            } ?: throw IllegalStateException("User not found for hashUserId: $contactHashUserId")
+            // Step 2: Get all users and filter by hashUserId (hashedContactUserId)
+            val usersCollection = firestore.collection("users")
+            val allUsersQuery = usersCollection
+                .whereEqualTo("hashUserId", hashedContactUserId) // Look for the user by hashed userId
+                .get()
+                .await()
+
+            val userDoc = allUsersQuery.documents.firstOrNull()
+
+            if (userDoc == null) {
+                Log.e("ContactRepository", "User not found for hashUserId: $hashedContactUserId")
+                return false
+            }
 
             // Retrieve the user details from the document
-            val user = userDoc.toObject(User::class.java) ?: throw IllegalStateException("User data is null")
+            val user = userDoc.toObject(User::class.java)
+            if (user == null) {
+                Log.e("ContactRepository", "Failed to parse user data.")
+                return false
+            }
 
             // Step 3: Create a Contact object
             val contact = Contact(
@@ -69,17 +82,14 @@ class ContactRepository(private val errorsViewModel: ErrorsViewModel) {
             )
 
             // Step 4: Add the Contact to the contacts collection
-            val contactsRef = firestore
-                            .collection("contacts")
-                            .document(userId)
-                            .collection("user_contacts")
-
+            val contactsRef = getContactsCollection(userId)
             contactsRef.add(contact).await()
 
             Log.d("ContactRepository", "Contact added successfully")
+            true
         } catch (e: Exception) {
             Log.e("ContactRepository", "Error adding contact: ${e.message}", e)
-            throw e // Throw the exception to be handled by the caller
+            false
         }
     }
 
@@ -109,7 +119,7 @@ class ContactRepository(private val errorsViewModel: ErrorsViewModel) {
 
                 addContactFromUser(
                     userId = userId,
-                    contactHashUserId = receiverId
+                    contactUserId = receiverId
                 ) // Assume addContact returns Unit or handles its own exceptions
                 true // Return true to indicate success
             } ?: run {
@@ -122,6 +132,13 @@ class ContactRepository(private val errorsViewModel: ErrorsViewModel) {
             Log.e("ContactRepository", "Error looking up and adding contact: ${e.message}", e)
             false
         }
+    }
+
+    // Function to hash userId using SHA-256
+    private fun hashSHA256(input: String): String {
+        return MessageDigest.getInstance("SHA-256")
+            .digest(input.toByteArray())
+            .joinToString("") { "%02x".format(it) }
     }
 
 }

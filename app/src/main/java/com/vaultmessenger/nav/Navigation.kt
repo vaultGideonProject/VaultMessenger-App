@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.vaultmessenger.database.AppDatabase
 import com.vaultmessenger.modules.ReceiverUserRepository
 import com.vaultmessenger.ui.ChatScreen
 import com.vaultmessenger.ui.ContactScreen
@@ -36,7 +37,8 @@ fun Navigation() {
   val context: Context = LocalContext.current
 
     val (
-        chatViewModel,
+      //  chatViewModel,
+        _,
         profileViewModel,
         notificationsViewModel,
         conversationViewModel,
@@ -45,10 +47,11 @@ fun Navigation() {
         connectivityViewModel,
         errorsViewModel,
         voiceNoteViewModel,
-        ) = ProvideViewModels(context)
+        ) = ProvideViewModels(context, senderUID = "null")
 
 
     NavHost(navController = navController, startDestination = "splash") {
+
 
         composable("splash") {
             SplashScreen(onTimeout = {
@@ -97,7 +100,8 @@ fun Navigation() {
             // Destructure the view models, ensuring all needed ones are captured
             val (_, _, _, _, _, receiverUserViewModel) = ProvideViewModels(
                 receiverUID = receiverUID,
-                context = context
+                context = context,
+                senderUID =  "guest"
             )
 
             // Collect the receiver user state
@@ -112,9 +116,7 @@ fun Navigation() {
                 // e.g., a CircularProgressIndicator
                 CircularProgressIndicator()
             } else if (senderUID != null && receiverUID != null) {
-                LaunchedEffect(key1 = senderUID, key2 = receiverUID) {
-                    chatViewModel.getMessages(senderUid = senderUID, receiverUid = receiverUID)
-                }
+
 
                 // Proceed to display the ChatScreen once the receiverUser is loaded
                 receiverUser?.let { user ->
@@ -126,9 +128,7 @@ fun Navigation() {
                         user = profileUser,
                         conversationViewModel = conversationViewModel,
                         receiverUser = user,
-                        chatViewModel = chatViewModel,
                         listState = listState,
-                        context = context,
                         receiverUserViewModel = receiverUserViewModel,
                         profileViewModel = profileViewModel,
                         errorsViewModel = errorsViewModel,

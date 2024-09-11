@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModelStoreOwner
 import com.google.firebase.firestore.*
 import com.vaultmessenger.model.Conversation
 import com.vaultmessenger.model.Message
-import com.vaultmessenger.modules.ChatRepository.Companion.MESSAGES_COLLECTION
 import com.vaultmessenger.viewModel.ErrorsViewModel
 import com.vaultmessenger.viewModel.ProfileViewModel
 import com.vaultmessenger.viewModel.ProfileViewModelFactory
@@ -42,10 +41,10 @@ class ConversationRepository(
         val collectionRef = getUserConversationsCollection(userId)
             .orderBy("timestamp", Query.Direction.ASCENDING)
 
-        val initialQuery = collectionRef.get(Source.CACHE)
+        val initialQuery = collectionRef.get(Source.SERVER)
         initialQuery.addOnSuccessListener { documents ->
-            val cachedMessages = documents.toObjects(Conversation::class.java)
-            trySend(cachedMessages).isSuccess
+            val messages = documents.toObjects(Conversation::class.java)
+            trySend(messages).isSuccess
         }.addOnFailureListener { e ->
             close(e)
         }

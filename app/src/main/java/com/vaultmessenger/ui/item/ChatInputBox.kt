@@ -134,15 +134,21 @@ fun ChatInputBox(
             onValueChange = { newText ->
                 chatInputBox = newText
             },
+
             modifier = Modifier
                 .weight(1f)
                 .padding(4.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = TextFieldDefaults.textFieldColors(
+            colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
                 focusedLeadingIconColor = Color.Blue,
+                unfocusedLeadingIconColor = Color.Gray, // Use your desired color
+                disabledLeadingIconColor = Color.LightGray, // Use your desired color
+                focusedTrailingIconColor = Color.Blue,
+                unfocusedTrailingIconColor = Color.Gray, // Use your desired color
+                disabledTrailingIconColor = Color.LightGray // Use your desired color
             ),
             leadingIcon = {
                 Row(

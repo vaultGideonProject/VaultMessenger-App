@@ -102,7 +102,7 @@ fun ConversationList(
                 TopAppBar(
                     title = {
                         Text(
-                            text = if(isConnected){"Vault Messenger"}else{"NO INTERNET"},
+                            text = if(isConnected){"Vault Messenger"}else{"Connecting"},
                             color = Color(0xFFFAFAFA),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
@@ -127,7 +127,7 @@ fun ConversationList(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = if(isConnected){Color(0xFF0D62CA)}else{
-                            Color(0xFFDA342E)
+                            Color(0xFFFF5449)
                         }
                     )
                 )

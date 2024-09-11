@@ -22,24 +22,25 @@ import com.vaultmessenger.model.Message
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
+import com.vaultmessenger.database.LocalMessage
 import com.vaultmessenger.ui.item.getFormattedDate
 
 @Composable
 fun ChatImageMessage(
-    message: Message,
+    localMessage: LocalMessage,
 ) {
     // Image zoom state
     var zoomed by remember { mutableStateOf(false) }
     var zoomOffset by remember { mutableStateOf(Offset.Zero) }
-    val messageTimeStamp = getFormattedDate(message.timestamp)
+    val messageTimeStamp = getFormattedDate(localMessage.timestamp)
 
     // Map to track loading states for each image
     val imageLoadingStates = remember { mutableStateMapOf<String, Boolean>() }
 
     // Initialize the loading state for the current message
-    LaunchedEffect(message.conversationId) {
-        if (!message.imageUrl.isNullOrEmpty()) {
-            imageLoadingStates[message.conversationId!!] = true
+    LaunchedEffect(localMessage.conversationId) {
+        if (!localMessage.imageUrl.isNullOrEmpty()) {
+            imageLoadingStates[localMessage.conversationId!!] = true
         }
     }
 
@@ -49,7 +50,7 @@ fun ChatImageMessage(
             .padding(8.dp) // Adjust padding for overall layout
     ) {
         // Display loading indicator if the image is being retrieved
-        if (imageLoadingStates[message.conversationId] == true) {
+        if (imageLoadingStates[localMessage.conversationId] == true) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
@@ -66,18 +67,18 @@ fun ChatImageMessage(
         }
 
         // Display image if URL is present and not "null"
-        if (!message.imageUrl.isNullOrEmpty() && message.imageUrl != "null") {
+        if (!localMessage.imageUrl.isNullOrEmpty() && localMessage.imageUrl != "null") {
             Image(
                 painter = rememberAsyncImagePainter(
-                    model = message.imageUrl,
+                    model = localMessage.imageUrl,
                     onLoading = {
-                        imageLoadingStates[message.conversationId!!] = true
+                        imageLoadingStates[localMessage.conversationId!!] = true
                     },
                     onSuccess = {
-                        imageLoadingStates[message.conversationId!!] = false
+                        imageLoadingStates[localMessage.conversationId!!] = false
                     },
                     onError = {
-                        imageLoadingStates[message.conversationId!!] = false
+                        imageLoadingStates[localMessage.conversationId!!] = false
                     }
                 ),
                 contentDescription = "Attached Image",

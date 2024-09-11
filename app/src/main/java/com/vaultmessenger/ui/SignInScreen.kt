@@ -24,9 +24,6 @@ import androidx.navigation.NavHostController
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.firebase.appcheck.appCheck
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
-import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.GoogleAuthProvider
@@ -34,60 +31,38 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.vaultmessenger.R
 import com.vaultmessenger.modules.FirebaseService
-import com.vaultmessenger.modules.FirebaseUserRepository
 import com.vaultmessenger.viewModel.ProfileViewModel
-import com.vaultmessenger.viewModel.ProfileViewModelFactory
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Composable
 fun SignInScreen(
     navController: NavHostController,
-    profileViewModel: ProfileViewModel,
-    ) {
+    profileViewModel: ProfileViewModel
+) {
     val auth = FirebaseService.auth
     var userAuth by remember { mutableStateOf(auth.currentUser) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(userAuth == null) } // Loading if user is not authenticated
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val user by profileViewModel.user.collectAsState()
-    var retryAttempts by remember { mutableIntStateOf(0) }
 
-
-    // Launch effect to fetch user data and retry if needed
-    LaunchedEffect(Unit) {
-        retryAttempts = 0
-        while (retryAttempts < 5) {
-            try {
-                profileViewModel.user
-                break // Exit the loop if successful
-            } catch (e: Exception) {
-                retryAttempts++
-                if (retryAttempts >= 5) {
-                    errorMessage = "Failed to fetch user data after multiple attempts."
-                }
-                // Optional: Delay before retrying
-                delay(20)
+    // Navigate to main screen if user is authenticated
+    LaunchedEffect(user, userAuth) {
+        if (user != null) {
+            navController.navigate("main") {
+                popUpTo("signIn") { inclusive = true }
             }
-        }
-        isLoading = false
-    }
-
-    // Launch effect to navigate based on user state
-    LaunchedEffect(user) {
-        if (user != null && userAuth != null) {
-            profileViewModel.refreshUser()
-            navController.navigate("main")
+        } else if (userAuth == null) {
+            isLoading = false
         }
     }
 
+    // Firebase Auth launcher for Google sign-in
     val launcher = rememberFirebaseAuthLauncher(
         onAuthComplete = { result ->
             userAuth = result.user
             isLoading = false
-            // Fetch user data and update state
-            profileViewModel.refreshUser()
             navController.navigate("main")
         },
         onAuthError = { exception ->
@@ -96,9 +71,8 @@ fun SignInScreen(
             errorMessage = exception.message
         }
     )
-    val token = stringResource(R.string.default_web_client_id)
-    val context = LocalContext.current
 
+    // Handle error messages
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -120,25 +94,33 @@ fun SignInScreen(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.baseline_chat_24), // Replace with your app logo resource
+                    painter = painterResource(id = R.drawable.baseline_chat_24),
                     contentDescription = "App Logo",
                     modifier = Modifier.size(120.dp)
                 )
                 Spacer(Modifier.height(24.dp))
+
+                val loginText = if (isLoading) {
+                    "Loading your account..."
+                } else {
+                    "Login to your account"
+                }
+
                 Text(
-                    text = if(user == null && userAuth == null){
-                        "Login to your account"
-                    }else{"Loading your account.."},
+                    text = loginText,
                     style = MaterialTheme.typography.headlineMedium,
                     color = Color.Black
                 )
                 Spacer(Modifier.height(24.dp))
 
-                //Load to next screen effects
+                // Show loading spinner if loading
                 if (isLoading) {
-                    CircularProgressIndicator( color = Color(0xFF435E91))
+                    CircularProgressIndicator(color = Color(0xFF435E91))
                 } else {
-                    if(user == null && userAuth == null){
+                    // Show the Google login button if no user is logged in
+                    if (userAuth == null) {
+                        val context = LocalContext.current
+                        val token = stringResource(R.string.default_web_client_id)
                         Button(
                             onClick = {
                                 isLoading = true
@@ -150,18 +132,12 @@ fun SignInScreen(
                                 launcher.launch(googleSignInClient.signInIntent)
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF435E91) // Background color
+                                containerColor = Color(0xFF435E91)
                             ),
                             modifier = Modifier.padding(padding)
                         ) {
-                            Text(
-                                text = "Continue with Google",
-                                color = Color.White,
-                            )
+                            Text(text = "Continue with Google", color = Color.White)
                         }
-                    }else{
-                        profileViewModel.refreshUser()
-                        navController.navigate("main")
                     }
                 }
             }
@@ -172,7 +148,7 @@ fun SignInScreen(
 @Composable
 fun rememberFirebaseAuthLauncher(
     onAuthComplete: (AuthResult) -> Unit,
-    onAuthError: (Exception) -> Unit,
+    onAuthError: (Exception) -> Unit
 ): ManagedActivityResultLauncher<Intent, ActivityResult> {
     val scope = rememberCoroutineScope()
     return rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->

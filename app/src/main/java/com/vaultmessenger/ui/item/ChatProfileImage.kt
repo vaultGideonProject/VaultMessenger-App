@@ -11,18 +11,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.vaultmessenger.database.LocalMessage
 import com.vaultmessenger.model.Message
 import com.vaultmessenger.model.ReceiverUser
 import com.vaultmessenger.model.User
 
 @Composable
 fun ChatProfileImage(
-    message: Message,
+    localMessage: LocalMessage,
     receiverUID:String,
     receiverUser: ReceiverUser,
     userList:User?
 ){
-    val profilePictureUrl = if (message.userId1 == receiverUID) {
+    val profilePictureUrl = if (localMessage.userId1 == receiverUID) {
         receiverUser.profilePictureUrl
     } else {
         userList?.profilePictureUrl

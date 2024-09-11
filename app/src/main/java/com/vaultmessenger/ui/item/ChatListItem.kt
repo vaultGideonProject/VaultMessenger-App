@@ -33,13 +33,14 @@ import java.util.Locale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import com.vaultmessenger.database.LocalMessage
 import com.vaultmessenger.model.ReceiverUser
 import com.vaultmessenger.viewModel.VoiceNoteState
 import com.vaultmessenger.viewModel.VoiceNoteViewModel
 
 @Composable
 fun ChatListItem(
-    message: Message,
+    localMessage: LocalMessage,
     receiverUID: String,
     receiverUser: ReceiverUser,
     profileViewModel: ProfileViewModel,
@@ -56,30 +57,30 @@ fun ChatListItem(
     var zoomOffset by remember { mutableStateOf(Offset.Zero) }
     var imageSize by remember { mutableStateOf(Size.Zero) }
 
-    val voiceNoteId = message.voiceNoteURL ?: ""
+    val voiceNoteId = localMessage.voiceNoteURL ?: ""
 
     val voiceNoteStates by voiceNoteViewModel.voiceNoteStates.observeAsState(emptyMap())
 
-    if (message.voiceNoteURL?.isNotBlank() == true) {
-        LaunchedEffect(message.voiceNoteURL) {
-            voiceNoteViewModel.setupPlayer(message.voiceNoteURL, message.voiceNoteURL)
+    if (localMessage.voiceNoteURL?.isNotBlank() == true) {
+        LaunchedEffect(localMessage.voiceNoteURL) {
+            voiceNoteViewModel.setupPlayer(localMessage.voiceNoteURL, localMessage.voiceNoteURL)
         }
-        DisposableEffect(message.voiceNoteURL) {
+        DisposableEffect(localMessage.voiceNoteURL) {
             onDispose {
-                voiceNoteViewModel.releasePlayer(message.voiceNoteURL)
+                voiceNoteViewModel.releasePlayer(localMessage.voiceNoteURL)
             }
         }
     }
 
     val voiceNoteState = voiceNoteStates[voiceNoteId] ?: VoiceNoteState()
 
-
     //check if message is valid
-    if(message.messageText.isNotBlank()||message.imageUrl?.isNotBlank() == true|| message.voiceNoteURL?.isNotBlank() == true){
+    if(localMessage.messageText.isNotBlank()||localMessage.imageUrl?.isNotBlank() == true|| localMessage.voiceNoteURL?.isNotBlank() == true){
 
     }else{
         return
     }
+
 
     Column(
         modifier = Modifier
@@ -92,12 +93,12 @@ fun ChatListItem(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.Bottom, // Align avatar with the bottom of the message box
-            horizontalArrangement = if (message.userId1 == "userList?.userId") Arrangement.End else Arrangement.Start
+            horizontalArrangement = if (localMessage.userId1 == "userList?.userId") Arrangement.End else Arrangement.Start
         ) {
-            if (message.userId1 != message.userId2) {
+            if (localMessage.userId1 != localMessage.userId2) {
 
                 // Display avatar on the left if the message is from the other user
-                ChatProfileImage(message = message,
+                ChatProfileImage(localMessage = localMessage,
                     receiverUID = receiverUID,
                     receiverUser = receiverUser,
                     userList = userList)
@@ -111,28 +112,34 @@ fun ChatListItem(
                         RoundedCornerShape(
                             topStart = 16.dp,
                             topEnd = 16.dp,
-                            bottomStart = if (message.userId1 == message.userId2) 16.dp else 0.dp,
-                            bottomEnd = if (message.userId1 == "userList?.userId") 0.dp else 16.dp
+                            bottomStart = if (localMessage.userId1 == localMessage.userId2) 16.dp else 0.dp,
+                            bottomEnd = if (localMessage.userId1 == "userList?.userId") 0.dp else 16.dp
                         )
                     )
-                    .background(Color(0xFF0D62CA))
+                    .background(
+                        if(receiverUID == localMessage.userId2){
+                            Color(0xFF0D62CA)
+                        }else{
+                            Color(0xFF7691C7)
+                        }
+                    )
                     .padding(16.dp)
             ) {
-                if(message.messageText.isNotBlank()){
-                    ChatTextMessage(message = message)
+                if(localMessage.messageText.isNotBlank()){
+                    ChatTextMessage(localMessage = localMessage)
                 }
-                if(message.imageUrl?.isNotBlank() == true){
+                if(localMessage.imageUrl?.isNotBlank() == true){
                     ChatImageMessage(
-                        message = message,
+                        localMessage = localMessage,
                         )
                 }
-                if (message.voiceNoteURL?.isNotBlank() == true) {
-                    if (message.voiceNoteURL.isNotBlank()) {
+                if (localMessage.voiceNoteURL?.isNotBlank() == true) {
+                    if (localMessage.voiceNoteURL.isNotBlank()) {
                         VoiceNoteUI(
                             isPlaying = voiceNoteState.isPlaying,
                             progress = voiceNoteState.progress,
                             duration = voiceNoteState.duration,
-                            onPlayPauseClick = { voiceNoteViewModel.playPause(message.voiceNoteURL) }
+                            onPlayPauseClick = { voiceNoteViewModel.playPause(localMessage.voiceNoteURL) }
                         )
                     }
                 }

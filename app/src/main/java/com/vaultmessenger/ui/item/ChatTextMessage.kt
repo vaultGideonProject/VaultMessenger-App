@@ -11,20 +11,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vaultmessenger.database.LocalMessage
 import com.vaultmessenger.model.Message
 
 @Composable
 fun ChatTextMessage(
-    message: Message
+    localMessage: LocalMessage
 ){
-    val messageTimeStamp = getFormattedDate(message.timestamp)
+    val messageTimeStamp = getFormattedDate(localMessage.timestamp)
 
     Column(
         modifier = Modifier.padding(2.dp) // Padding around the entire message block
     ) {
         // Display message text if it's not blank
-        if (message.messageText.isNotBlank() || message.messageText != "") {
-            Text(text = message.messageText, color = Color.White)
+        if (localMessage.messageText.isNotBlank() || localMessage.messageText != "") {
+            Text(text = localMessage.messageText, color = Color.White)
             Spacer(modifier = Modifier.height(4.dp)) // Space between text and loading indicator or image
         }
         // Display timestamp at the bottom

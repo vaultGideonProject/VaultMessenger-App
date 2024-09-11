@@ -97,7 +97,7 @@ fun ProfileScreen(
             }
         }
     }
-    val encodedUserId = Encoder.encodeWithSHA256(user?.userId)
+    val encodedUserId = user?.userId
 
     val errorMessage by errorsViewModel.errorMessage.observeAsState(initial = "")
     val currentErrorMessage by rememberUpdatedState(errorMessage)

@@ -38,11 +38,12 @@ import com.vaultmessenger.viewModel.ReceiverUserViewModel
 import com.vaultmessenger.viewModel.VoiceNoteViewModel
 import kotlinx.coroutines.launch
 import okhttp3.internal.wait
+import java.util.UUID
 
 @Composable
 fun ChatScreen(
     navController: NavHostController,
-    senderUID: String?,
+    senderUID: String,
     receiverUID: String,
     conversationViewModel: ConversationViewModel,
     notificationsViewModel: NotificationsViewModel,
@@ -50,71 +51,31 @@ fun ChatScreen(
     profileViewModel: ProfileViewModel,
     user: User?,
     receiverUser: ReceiverUser,
-    chatViewModel: ChatViewModel,
     listState: LazyListState,
-    context: Context,
     errorsViewModel: ErrorsViewModel,
     voiceNoteViewModel: VoiceNoteViewModel,
 ) {
+    val context = LocalContext.current
+    val (chatViewModel, _, _, _, _, _) = ProvideViewModels(context = context, senderUID = senderUID, receiverUID = receiverUID)
 
-    // Use remember to avoid recomputing these variables unnecessarily
-    val viewModelStoreOwner = LocalViewModelStoreOwner.current
+    // Collect state lazily
+    val messagesList by chatViewModel.messagesFlow.collectAsState(initial = emptyList())
+    val messageReady by chatViewModel.messagesReady.collectAsState(initial = false)
 
-    // Collecting state lazily in a LaunchedEffect
-    val messagesReady by chatViewModel.messagesReady.collectAsState(initial = false)
-    val receiverReady by receiverUserViewModel.receiverReady.collectAsState(initial = false)
-    val userReady by profileViewModel.userReady.collectAsState(initial = false)
-    val isMessageValid by chatViewModel.isMessageValid.collectAsState(initial = true)
-    val validationMessage by chatViewModel.validationMessage.collectAsState(initial = "")
-    val chatMessagesList by chatViewModel.messages.collectAsState(initial = emptyList())
     val snackbarHostState = remember { SnackbarHostState() }
     val errorMessage by errorsViewModel.errorMessage.observeAsState(initial = "")
     val currentErrorMessage by rememberUpdatedState(errorMessage)
     val scope = rememberCoroutineScope()
-    // Observing user profile state
-    val userList = remember(user) { user }
-    val scrollState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
 
-    // Logic to check if the user is not at the bottom of the list
-    val isScrolledToEnd by remember {
-        derivedStateOf {
-            scrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == scrollState.layoutInfo.totalItemsCount - 1
-        }
+    LaunchedEffect(key1 = senderUID, key2 = receiverUID) {
+      chatViewModel.loadRemoteMessages(senderUID, receiverUID)
     }
 
-    // Only run launchConfigs if necessary, and lazy run them in a LaunchedEffect
-    LaunchedEffect(Unit) {
-        val launchConfigs = LaunchConfigs()
-        launchConfigs.defaults(
-            userViewModel = profileViewModel,
-            navController = navController
-        ).run {
-            // Your logic here, executed only once when the composable enters the composition
-        }
+    LaunchedEffect(messageReady) {
+        chatViewModel.loadMessages(senderUID, receiverUID)
     }
 
-    // Handling side effects for messagesReady and validationMessage changes
-    LaunchedEffect(key1 = messagesReady, key2 = receiverReady, key3 = userReady) {
-        if (messagesReady && receiverReady && userReady) {
-            fun getChatCount(): Int{
-                return if(chatMessagesList.lastIndex != -1){
-                    chatMessagesList.lastIndex
-                }else{
-                    0
-                }
-            }
-            listState.scrollToItem(getChatCount())
-        }
-    }
-
-    LaunchedEffect(validationMessage) {
-        if (!isMessageValid && validationMessage.isNotEmpty()) {
-            Toast.makeText(context, validationMessage, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // Use SideEffect to respond to state changes
+    // Handling side effects for errors
     SideEffect {
         currentErrorMessage?.takeIf { it.isNotBlank() }?.let { message ->
             scope.launch {
@@ -125,9 +86,7 @@ fun ChatScreen(
     }
 
     Scaffold(
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             receiverUser.let {
                 ChatToolbar(
@@ -138,59 +97,37 @@ fun ChatScreen(
             }
         },
         bottomBar = {
-            ChatScrollDownButton({ null })
-            Spacer(modifier = Modifier.height(20.dp))
-            userList?.let { senderUser ->
-                receiverUser?.let { receiverUser ->
-                    ChatInputBox(
-                        senderUID = senderUser.userId,
-                        receiverUID = receiverUser.userId,
-                        name = senderUser.userName,
-                        photoUrl = senderUser.profilePictureUrl,
-                        conversationUserIds = mapOf(
-                            "userId1" to senderUser.userId,
-                            "userId2" to receiverUser.userId
-                        ),
-                        conversationUserNames = hashMapOf(
-                            "userId1" to senderUser.userName,
-                            "userId2" to receiverUser.userName
-                        ),
-                                conversationUserProfilePhotos = mapOf(
-                            "userId1" to senderUser.profilePictureUrl,
-                            "userId2" to receiverUser.profilePictureUrl
-                        ),
-                        onSendMessage = { message, conversation ->
-
-                            chatViewModel.updateMessage(message.messageText)
-
-                            chatViewModel.viewModelScope.launch {
-                                chatViewModel.sendMessage(
-                                    receiverUid = receiverUID,
-                                    senderUid = senderUID!!, // Assumes senderUID is non-null here
-                                    message = message
-                                )
-                            }
-                            conversationViewModel.viewModelScope.launch {
-                                conversationViewModel.setConversationBySenderId(
-                                    senderId = senderUID!!,
-                                    receiverId = receiverUID,
-                                    viewModelStoreOwner = viewModelStoreOwner,
-                                    message = message)
-                            }
-                        },
-                        modifier = Modifier
-                            .padding(vertical = 8.dp)
-                            .fillMaxWidth(), // Ensure the input box fills the entire width
-                        notificationsViewModel = notificationsViewModel,
-                        profileViewModel = profileViewModel,
-                        chatViewModel = chatViewModel,
-                        conversationViewModel = conversationViewModel,
-                        navController = navController
-                    )
-                }
-            }
-            Spacer(
-                modifier = Modifier.padding(vertical = 65.dp))
+            ChatInputBox(
+                senderUID = user?.userId ?: "",
+                receiverUID = receiverUser.userId,
+                name = user?.userName ?: "",
+                photoUrl = user?.profilePictureUrl ?: "",
+                conversationUserIds = mapOf(
+                    "userId1" to user?.userId!!,
+                    "userId2" to receiverUser.userId
+                ),
+                conversationUserNames = hashMapOf(
+                    "userId1" to user.userName,
+                    "userId2" to receiverUser.userName
+                ),
+                conversationUserProfilePhotos = mapOf(
+                    "userId1" to user.profilePictureUrl,
+                    "userId2" to receiverUser.profilePictureUrl
+                ),onSendMessage = { message, conversation ->
+                    chatViewModel.viewModelScope.launch {
+                        chatViewModel.sendMessage(receiverUid = receiverUID, senderUid = senderUID, message = message)
+                    }
+                },
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .padding(bottom = 40.dp) // Moves the input box up by 20.dp
+                    .fillMaxWidth(),
+                notificationsViewModel = notificationsViewModel,
+                profileViewModel = profileViewModel,
+                chatViewModel = chatViewModel,
+                conversationViewModel = conversationViewModel,
+                navController = navController
+            )
         },
         content = { padding ->
             Surface(
@@ -202,13 +139,21 @@ fun ChatScreen(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    reverseLayout = false // Display messages in reverse chronological order
+                    reverseLayout = false // Display messages in order
                 ) {
-                    items(chatMessagesList, key = { it.timestamp + 1}) { message ->
-                        ChatListItem(message = message, receiverUID = receiverUID, receiverUser = receiverUser, profileViewModel, voiceNoteViewModel)
+                    items(messagesList, key = { it.conversationId ?: UUID.randomUUID() }) { localMessage ->
+                        ChatListItem(
+                            localMessage = localMessage,
+                            receiverUID = receiverUID,
+                            receiverUser = receiverUser,
+                            profileViewModel = profileViewModel,
+                            voiceNoteViewModel = voiceNoteViewModel
+                        )
                     }
+
                 }
             }
         }
     )
 }
+

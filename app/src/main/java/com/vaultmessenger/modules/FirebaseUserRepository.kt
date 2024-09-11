@@ -38,6 +38,7 @@ class FirebaseUserRepository(private val uid: String? = null) {
     suspend fun getUser(): User? {
         val userId = getCurrentUserId()
         if (userId == "guest") {
+            //might be an issue
             return null
         }
 
@@ -84,9 +85,7 @@ class FirebaseUserRepository(private val uid: String? = null) {
         }
     }
 
-
-
-    suspend fun createNewUserAccount() {
+    private suspend fun createNewUserAccount() {
         val userId = getCurrentUserId()
         if (userId == "guest") return
 
@@ -145,7 +144,6 @@ class FirebaseUserRepository(private val uid: String? = null) {
             throw e
         }
     }
-
 
     suspend fun isUserOnlineStatus(userId: String): Boolean {
         if (userId.isEmpty()) return false

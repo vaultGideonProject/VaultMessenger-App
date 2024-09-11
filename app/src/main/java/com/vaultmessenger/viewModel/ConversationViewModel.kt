@@ -27,12 +27,6 @@ class ConversationViewModel(
         // Access FirebaseAuth
         val auth = FirebaseService.auth
 
-        // Access Firestore
-        val firestore = FirebaseService.firestore
-
-        // Access FirebaseStorage
-        val storage = FirebaseService.storage
-
         viewModelScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
 
