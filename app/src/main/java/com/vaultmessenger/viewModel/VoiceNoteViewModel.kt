@@ -14,8 +14,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-
 class VoiceNoteViewModel(
     application: Application,
     private val errorsViewModel: ErrorsViewModel
@@ -25,11 +25,17 @@ class VoiceNoteViewModel(
     val voiceNoteStates: LiveData<Map<String, VoiceNoteState>> get() = _voiceNoteStates
 
     private val players = mutableMapOf<String, ExoPlayer>()
-
     private val _currentPlayer = MutableLiveData("")
     private var progressUpdateJob: Job? = null
 
+    // Reusable function to handle errors
+    private fun handlePlayerError(message: String, exception: Exception) {
+        errorsViewModel.setError("$message: ${exception.message}")
+        exception.printStackTrace()
+    }
+
     fun setupPlayer(voiceNoteId: String, url: String) {
+        // Release the current player if it exists
         players[voiceNoteId]?.release()
 
         val context = getApplication<Application>().applicationContext
@@ -41,53 +47,15 @@ class VoiceNoteViewModel(
 
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                when (playbackState) {
-                    Player.STATE_READY -> {
-                        try {
-                            val durationMs = player.duration
-                            updateVoiceNoteState(voiceNoteId) {
-                                it.copy(
-                                    duration = formatDuration(durationMs),
-                                    isBuffering = false // Ensure buffering state is reset
-                                )
-                            }
-                        } catch (e: Exception) {
-                            errorsViewModel.setError("Error during Player.STATE_READY: ${e.message}")
-                            e.printStackTrace()
-                        }
+                try {
+                    when (playbackState) {
+                        Player.STATE_READY -> updateStateReady(voiceNoteId, player)
+                        Player.STATE_ENDED -> updateStateEnded(voiceNoteId)
+                        Player.STATE_BUFFERING -> updateVoiceNoteState(voiceNoteId) { it.copy(isBuffering = true) }
+                        Player.STATE_IDLE -> resetState(voiceNoteId)
                     }
-                    Player.STATE_ENDED -> {
-                        try {
-                            updateVoiceNoteState(voiceNoteId) {
-                                it.copy(isPlaying = false, progress = 0f, isBuffering = false)
-                            }
-                            progressUpdateJob?.cancel()
-                        } catch (e: Exception) {
-                            errorsViewModel.setError("Error during Player.STATE_ENDED: ${e.message}")
-                            e.printStackTrace()
-                        }
-                    }
-                    Player.STATE_BUFFERING -> {
-                        try {
-                            updateVoiceNoteState(voiceNoteId) {
-                                it.copy(isBuffering = true)
-                            }
-                        } catch (e: Exception) {
-                            errorsViewModel.setError("Error during Player.STATE_BUFFERING: ${e.message}")
-                            e.printStackTrace()
-                        }
-                    }
-                    Player.STATE_IDLE -> {
-                        try {
-                            updateVoiceNoteState(voiceNoteId) {
-                                it.copy(isPlaying = false, progress = 0f, isBuffering = false)
-                            }
-                            progressUpdateJob?.cancel()
-                        } catch (e: Exception) {
-                            errorsViewModel.setError("Error during Player.STATE_IDLE: ${e.message}")
-                            e.printStackTrace()
-                        }
-                    }
+                } catch (e: Exception) {
+                    handlePlayerError("Error during playback state change", e)
                 }
             }
         })
@@ -95,98 +63,122 @@ class VoiceNoteViewModel(
         players[voiceNoteId] = player
     }
 
+    private fun updateStateReady(voiceNoteId: String, player: ExoPlayer) {
+        val durationMs = player.duration
+        updateVoiceNoteState(voiceNoteId) {
+            it.copy(
+                duration = formatDuration(durationMs),
+                isBuffering = false
+            )
+        }
+    }
+
+    private fun updateStateEnded(voiceNoteId: String) {
+        updateVoiceNoteState(voiceNoteId) {
+            it.copy(isPlaying = false, progress = 0f, isBuffering = false)
+        }
+        progressUpdateJob?.cancel()
+    }
+
+    private fun resetState(voiceNoteId: String) {
+        updateVoiceNoteState(voiceNoteId) {
+            it.copy(isPlaying = false, progress = 0f, isBuffering = false)
+        }
+        progressUpdateJob?.cancel()
+    }
+
     fun playPause(voiceNoteId: String) {
-        try {
-            val currentVoiceNoteId = _currentPlayer.value
+        val currentVoiceNoteId = _currentPlayer.value
 
-            if (currentVoiceNoteId != null && currentVoiceNoteId != voiceNoteId) {
-                val currentPlayer = players[currentVoiceNoteId]
-                currentPlayer?.let {
-                    try {
-                        it.playWhenReady = false
-                        updateVoiceNoteState(currentVoiceNoteId) { state ->
-                            state.copy(isPlaying = false)
-                        }
-                        progressUpdateJob?.cancel()
-                    } catch (e: Exception) {
-                        errorsViewModel.setError("Error stopping current player: ${e.message}")
-                    }
-                }
-            }
+        if (currentVoiceNoteId != null && currentVoiceNoteId != voiceNoteId) {
+            stopCurrentPlayer(currentVoiceNoteId)
+        }
 
-            val player = players[voiceNoteId] ?: return
+        val player = players[voiceNoteId] ?: return
 
-            val isPlayingNow = try {
-                player.isPlaying
-            } catch (e: Exception) {
-                errorsViewModel.setError("Error checking player state: ${e.message}")
-                return
-            }
-
-            try {
-                updateVoiceNoteState(voiceNoteId) {
-                    it.copy(isPlaying = !isPlayingNow)
-                }
-                player.playWhenReady = !isPlayingNow
-
-                if (!isPlayingNow) {
-                    startUpdatingProgress(voiceNoteId, player)
-                } else {
-                    progressUpdateJob?.cancel()
-                }
-
-                if (!player.isPlaying && player.playbackState == Player.STATE_ENDED) {
-                    player.seekTo(0)
-                    player.playWhenReady = true
-                }
-
-                _currentPlayer.value = if (isPlayingNow) null else voiceNoteId
-            } catch (e: Exception) {
-                errorsViewModel.setError("Error during play/pause operation: ${e.message}")
-            }
+        val isPlayingNow = try {
+            player.isPlaying
         } catch (e: Exception) {
-            errorsViewModel.setError("Error in playPause function: ${e.message}")
+            handlePlayerError("Error checking player state", e)
+            return
+        }
+
+        updateVoiceNoteState(voiceNoteId) {
+            it.copy(isPlaying = !isPlayingNow)
+        }
+
+        player.playWhenReady = !isPlayingNow
+
+        if (!isPlayingNow) {
+            startUpdatingProgress(voiceNoteId, player)
+        } else {
+            progressUpdateJob?.cancel()
+        }
+
+        if (!player.isPlaying && player.playbackState == Player.STATE_ENDED) {
+            player.seekTo(0)
+            player.playWhenReady = true
+        }
+
+        _currentPlayer.value = if (isPlayingNow) null else voiceNoteId
+    }
+
+    private fun stopCurrentPlayer(currentVoiceNoteId: String) {
+        players[currentVoiceNoteId]?.let { player ->
+            player.playWhenReady = false
+            updateVoiceNoteState(currentVoiceNoteId) { it.copy(isPlaying = false) }
+            progressUpdateJob?.cancel()
         }
     }
 
     private fun startUpdatingProgress(voiceNoteId: String, player: ExoPlayer) {
-        progressUpdateJob?.cancel()
+        progressUpdateJob?.cancel()  // Cancel any existing progress update job
+
         progressUpdateJob = viewModelScope.launch {
-            try {
-                while (true) {
-                    try {
-                        val progress = player.currentPosition.toFloat() / player.duration
+            while (isActive) {  // Ensure the coroutine stops if it's cancelled
+                try {
+                    // Check if playback has ended
+                    if (player.playbackState == Player.STATE_ENDED) {
+                        // Ensure progress is set to 100% when the voice note ends
+                        updateVoiceNoteState(voiceNoteId) {
+                            it.copy(progress = 1f)
+                        }
+                        break
+                    }
+
+                    // Ensure the duration is valid before calculating progress
+                    val duration = player.duration
+                    if (duration > 0) {
+                        // Calculate the progress as a fraction of the total duration
+                        val progress = player.currentPosition.toFloat() / duration
                         updateVoiceNoteState(voiceNoteId) {
                             it.copy(progress = progress)
                         }
-                        delay(500L) // Update progress every 500ms
-                    } catch (e: Exception) {
-                        errorsViewModel.setError("Error updating progress for voice note $voiceNoteId: ${e.message}")
-                        break
+                    } else {
+                        // Handle the case when duration is invalid (e.g., not yet loaded)
+                        updateVoiceNoteState(voiceNoteId) {
+                            it.copy(progress = 0f)
+                        }
                     }
+
+                    delay(500L)  // Adjust update frequency
+
+                } catch (e: Exception) {
+                    handlePlayerError("Error updating progress for voice note $voiceNoteId", e)
+                    break
                 }
-            } catch (e: Exception) {
-                errorsViewModel.setError("Error in startUpdatingProgress function: ${e.message}")
             }
         }
     }
 
     fun releasePlayer(voiceNoteId: String) {
-        try {
-            players.remove(voiceNoteId)?.release()
-        } catch (e: Exception) {
-            errorsViewModel.setError("Error releasing player for voice note $voiceNoteId: ${e.message}")
-        }
+        players.remove(voiceNoteId)?.release()
     }
 
     private fun updateVoiceNoteState(voiceNoteId: String, update: (VoiceNoteState) -> VoiceNoteState) {
-        try {
-            val currentState = _voiceNoteStates.value ?: emptyMap()
-            val updatedState = update(currentState[voiceNoteId] ?: VoiceNoteState())
-            _voiceNoteStates.value = currentState + (voiceNoteId to updatedState)
-        } catch (e: Exception) {
-            errorsViewModel.setError("Error updating voice note state for $voiceNoteId: ${e.message}")
-        }
+        val currentState = _voiceNoteStates.value ?: emptyMap()
+        val updatedState = update(currentState[voiceNoteId] ?: VoiceNoteState())
+        _voiceNoteStates.value = currentState + (voiceNoteId to updatedState)
     }
 
     @SuppressLint("DefaultLocale")
@@ -196,12 +188,11 @@ class VoiceNoteViewModel(
             val seconds = ((durationMs % 60000) / 1000).toInt()
             String.format("%02d:%02d", minutes, seconds)
         } catch (e: Exception) {
-            errorsViewModel.setError("Error formatting duration: ${e.message}")
-            "00:00" // Default fallback in case of error
+            handlePlayerError("Error formatting duration", e)
+            "00:00" // Default fallback
         }
     }
 }
-
 
 data class VoiceNoteState(
     val isPlaying: Boolean = false,

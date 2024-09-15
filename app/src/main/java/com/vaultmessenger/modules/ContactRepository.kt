@@ -93,7 +93,7 @@ class ContactRepository(private val errorsViewModel: ErrorsViewModel) {
         }
     }
 
-    private suspend fun getReceiverViewModel(
+    private fun getReceiverViewModel(
         viewModelStoreOwner: ViewModelStoreOwner?,
         receiverId: String
     ): ReceiverUserViewModel {
@@ -102,8 +102,7 @@ class ContactRepository(private val errorsViewModel: ErrorsViewModel) {
            repository =  receiverUserRepository,
             errorsViewModel = errorsViewModel,
         )
-        return ViewModelProvider(viewModelStoreOwner!!, factory)
-            .get(ReceiverUserViewModel::class.java)
+        return ViewModelProvider(viewModelStoreOwner!!, factory)[ReceiverUserViewModel::class.java]
     }
 
     suspend fun lookUpAndAddContact(

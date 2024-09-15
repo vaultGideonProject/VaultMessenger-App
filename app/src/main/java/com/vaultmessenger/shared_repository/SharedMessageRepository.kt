@@ -12,6 +12,7 @@ import com.vaultmessenger.modules.ChatRepository
 import com.vaultmessenger.modules.ConversationRepository
 import com.vaultmessenger.viewModel.ChatViewModel
 import com.vaultmessenger.viewModel.ErrorsViewModel
+import kotlinx.coroutines.NonCancellable.isActive
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -46,15 +47,21 @@ class SharedMessageRepository(
         receiverUID: String,
         message: Message
     ) {
+
         val localMessage = message.toLocalMessage()
         // Insert into local database
        MyApp.insertMessages(listOf(localMessage))
-        // Send message to remote repository
-        chatRepository.sendMessage(
-            senderUid = senderUID,
-            receiverUid = receiverUID,
-            message = message
-        )
+       try{
+           // Send message to remote repository
+           chatRepository.sendMessage(
+               senderUid = senderUID,
+               receiverUid = receiverUID,
+               message = message
+           )
+       }catch (e:Exception){
+           errorsViewModel.setError("message not sent:${e.message}")
+       }
+        Log.d("sharedMessageSend", "Message Sent")
     }
 
     // Load messages from Room
@@ -63,18 +70,27 @@ class SharedMessageRepository(
     }
 
     // load messages into ROOm
-    suspend fun loadMessages(senderUID: String, receiverUID: String, delayMillis: Long = 15000L) {
-        while (true) {
-            chatRepository.getMessagesFlow(senderUID, receiverUID).collect { messages ->
-                // Convert List<Message> to List<LocalMessage>
-                val localMessages = messages.map { it.toLocalMessage() }
-                // Insert List<LocalMessage> into the database
-                MyApp.insertMessages(localMessages)
+    suspend fun loadMessages(senderUID: String, receiverUID: String, delayMillis: Long = 60000L) {
+        while (isActive) {  // Ensure the coroutine continues running only if it's active
+            try {
+                // Collect messages from chatRepository
+                chatRepository.getMessagesFlow(senderUID, receiverUID).collect { messages ->
+                    // Convert List<Message> to List<LocalMessage>
+                    val localMessages = messages.map { it.toLocalMessage() }
+
+                    // Insert List<LocalMessage> into the database
+                    MyApp.insertMessages(localMessages)
+                }
+            } catch (e: Exception) {
+                // Handle any exceptions during the message loading or insertion
+                 errorsViewModel.setError("Error loading messages for $senderUID and $receiverUID, $e")
             }
-            // Wait before fetching again
+
+            // Wait before fetching messages again
             delay(delayMillis)
         }
     }
+
 
 
 

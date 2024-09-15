@@ -11,6 +11,7 @@ import com.google.firebase.functions.HttpsCallableResult
 import com.google.gson.Gson
 import com.vaultmessenger.model.Message
 import com.vaultmessenger.viewModel.ChatViewModel
+import com.vaultmessenger.viewModel.ErrorsViewModel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
@@ -20,7 +21,7 @@ import kotlinx.coroutines.flow.flow
 import org.json.JSONObject
 import java.net.URL
 
-class ChatRepository {
+class ChatRepository() {
 
     companion object {
         const val MESSAGES_COLLECTION = "messages"
@@ -38,10 +39,12 @@ class ChatRepository {
             "message" to Gson().toJson(message) // Convert Message to JSON string
         )
         try {
-            val endpointSendMessage = URL(
-                "https://europe-west3-vaultmessengerdev.cloudfunctions.net/sendMessage"
+            val endpointSendMessages = URL(
+                "https://send-message-393456298207.europe-west3.run.app"
             )
-            val result = functions.getHttpsCallableFromUrl(endpointSendMessage)
+
+            val result = functions
+                .getHttpsCallableFromUrl(endpointSendMessages) // Name of your cloud function
                 .call(data)
                 .await()
 
@@ -57,8 +60,14 @@ class ChatRepository {
                 "sendMessage Success",
                 "Message sent successfully from $senderUid to $receiverUid"
             )
+            Log.d(
+                "sendMessage service",
+                "service response: ${result.data.toString()}"
+            )
         } catch (e: Exception) {
+
             Log.e("sendMessage Failed", "Error sending message: ${e.message}", e)
+
         }
 
     }
@@ -70,9 +79,11 @@ class ChatRepository {
 
             try {
                 val endpointGetMessages = URL(
-                    "https://europe-west3-vaultmessengerdev.cloudfunctions.net/getMessages"
+                    "https://get-messages-393456298207.europe-west3.run.app"
                 )
-                val result = functions.getHttpsCallableFromUrl(endpointGetMessages)
+
+                val result = functions
+                    .getHttpsCallableFromUrl( endpointGetMessages) // Name of your cloud function
                     .call(mapOf("senderUid" to senderUid, "receiverUid" to receiverUid))
                     .await()
 

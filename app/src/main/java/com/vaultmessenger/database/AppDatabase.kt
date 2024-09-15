@@ -23,7 +23,7 @@ abstract class AppDatabase : RoomDatabase() {
             scope: CoroutineScope
         ): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val chatRepository:ChatRepository = ChatRepository()
+               // val chatRepository:ChatRepository = ChatRepository()
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
@@ -40,14 +40,14 @@ abstract class AppDatabase : RoomDatabase() {
     private class AppDatabaseCallback(
         private val scope: CoroutineScope,
 
-    ) : RoomDatabase.Callback() {
+    ) : Callback() {
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
             // When the database is created, insert the sample messages
             INSTANCE?.let { database ->
                 scope.launch {
                     val messageDao = database.messageDao()
-
+                    messageDao.deleteAll()
                 }
             }
         }

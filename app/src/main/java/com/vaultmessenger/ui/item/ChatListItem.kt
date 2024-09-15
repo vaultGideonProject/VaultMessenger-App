@@ -162,18 +162,6 @@ fun formatDate(date: Date?, pattern: String = "hh:mm a"): String {
     }
 }
 
-fun calculateOffset(tapOffset: Offset, size: Size): Offset {
-    // Center the zoom around the tap point
-    val centerX = (size.width / 2) - tapOffset.x
-    val centerY = (size.height / 2) - tapOffset.y
-
-    // Ensure the image doesn't move out of bounds
-    val constrainedX = centerX.coerceAtLeast(-size.width / 2).coerceAtMost(size.width / 2)
-    val constrainedY = centerY.coerceAtLeast(-size.height / 2).coerceAtMost(size.height / 2)
-
-    return Offset(constrainedX, constrainedY)
-}
-
 // Function to convert a Unix timestamp string to a formatted date string
 fun getFormattedDate(timestamp: String, displayPattern: String = "hh:mm a"): String {
     return try {

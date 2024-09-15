@@ -109,9 +109,10 @@ import com.vaultmessenger.modules.LaunchConfigs
 import com.vaultmessenger.ui.item.ConversationItem
 import com.vaultmessenger.ui.item.UserProfile
 import com.vaultmessenger.viewModel.ErrorsViewModel
+import dagger.hilt.EntryPoint
 import java.util.UUID
 
-
+@EntryPoint
 class MainActivity : ComponentActivity() {
     private val userRepository by lazy { FirebaseUserRepository() }
     private val errorsViewModel: ErrorsViewModel by viewModels()

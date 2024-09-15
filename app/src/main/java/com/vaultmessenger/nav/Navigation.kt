@@ -1,24 +1,16 @@
 package com.vaultmessenger.nav
 
 import android.content.Context
-import androidx.activity.ComponentActivity
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.vaultmessenger.database.AppDatabase
-import com.vaultmessenger.modules.ReceiverUserRepository
 import com.vaultmessenger.ui.ChatScreen
 import com.vaultmessenger.ui.ContactScreen
 import com.vaultmessenger.ui.ConversationList
@@ -26,9 +18,6 @@ import com.vaultmessenger.ui.ProfileScreen
 import com.vaultmessenger.ui.SignInScreen
 import com.vaultmessenger.ui.SplashScreen
 import com.vaultmessenger.viewModel.ProvideViewModels
-import com.vaultmessenger.viewModel.ReceiverUserViewModel
-import com.vaultmessenger.viewModel.ReceiverUserViewModelFactory
-import kotlinx.coroutines.launch
 
 @Composable
 fun Navigation() {
@@ -48,7 +37,6 @@ fun Navigation() {
         errorsViewModel,
         voiceNoteViewModel,
         ) = ProvideViewModels(context, senderUID = "null")
-
 
     NavHost(navController = navController, startDestination = "splash") {
 
@@ -108,8 +96,6 @@ fun Navigation() {
             val receiverUser by receiverUserViewModel.receiverUser.collectAsState(initial = null)
             val profileUser by profileViewModel.user.collectAsState(initial = null)
 
-            val listState = rememberLazyListState()
-
             // Show a loading indicator while waiting for receiverUser to load
             if (receiverUser == null) {
                 // You can show a loading UI here
@@ -128,7 +114,6 @@ fun Navigation() {
                         user = profileUser,
                         conversationViewModel = conversationViewModel,
                         receiverUser = user,
-                        listState = listState,
                         receiverUserViewModel = receiverUserViewModel,
                         profileViewModel = profileViewModel,
                         errorsViewModel = errorsViewModel,

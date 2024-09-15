@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.UUID
 
 class ChatViewModel(
     private val errorsViewModel: ErrorsViewModel,
@@ -154,6 +155,7 @@ class ChatViewModel(
                     if (voiceNoteUrl.isNotEmpty()) {
                         // Create the voice message object
                         val voiceMessage = Message(
+                            conversationId = UUID.randomUUID().toString(),
                             imageUrl = null,
                             voiceNoteURL = voiceNoteUrl,
                             voiceNoteDuration = null,  // Assuming no duration value here

@@ -1,6 +1,7 @@
 package com.vaultmessenger.database
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -20,6 +21,9 @@ interface MessageDao {
     ORDER BY timestamp ASC
     """)
     fun getMessagesForConversation(senderUID: String, receiverUID: String): Flow<List<LocalMessage>>
+
+    @Query("DELETE  FROM message")
+    fun deleteAll()
 
 }
 

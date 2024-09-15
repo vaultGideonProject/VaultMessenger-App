@@ -26,6 +26,7 @@ import androidx.navigation.NavHostController
 import com.vaultmessenger.ProfileImage
 import com.vaultmessenger.model.Conversation
 import com.vaultmessenger.modules.ReceiverUserRepository
+import com.vaultmessenger.modules.formatTimestamp
 import com.vaultmessenger.viewModel.ErrorsViewModel
 import com.vaultmessenger.viewModel.ProfileViewModel
 import com.vaultmessenger.viewModel.ReceiverUserViewModel
@@ -49,6 +50,8 @@ fun ConversationItem(
     val receiverViewModelFactory = ReceiverUserViewModelFactory(receiverUserRepository, errorsViewModel)
     val receiverUserViewModel: ReceiverUserViewModel = viewModel(factory = receiverViewModelFactory)
     val receiverUser by receiverUserViewModel.receiverUser.collectAsState()
+    val conversationTimestamp: String = conversation.timestamp
+    val formattedTime = formatTimestamp(conversationTimestamp)
 
     Row(
         modifier = Modifier
@@ -92,9 +95,10 @@ fun ConversationItem(
         Spacer(modifier = Modifier.width(8.dp))
 
         Text(
-            text = conversation.timestamp, // Format this timestamp for better readability if needed
+            text = formattedTime, // Format this timestamp for better readability if needed
             style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray
+            color = Color(0xFF001A41)
         )
+        Spacer(modifier = Modifier.width(10.dp))
     }
 }

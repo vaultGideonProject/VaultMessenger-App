@@ -93,6 +93,7 @@ fun PulsingMicIcon(
 
     fun stopRecording() {
         if (isRecording) {
+
             val voiceMessage = Message(
                 messageText = "sent you a Recording",
                 name = userName,
@@ -103,13 +104,14 @@ fun PulsingMicIcon(
                 userId2 = receiverUID,
                 conversationId = generateConversationId(),
                 imageUrl = null,
-
             )
+
             chatViewModel.viewModelScope.launch {
                 chatViewModel.stopVoiceRecording(
                     senderUid = senderUID, // Make sure these variables are initialized and available
                     receiverUid = receiverUID
                 )
+
                 conversationViewModel.viewModelScope.launch {
                     conversationViewModel.setConversationBySenderId(
                         senderId = senderUID,

@@ -56,10 +56,6 @@ fun ChatInputBox(
 ) {
     var chatInputBox by remember { mutableStateOf(TextFieldValue("")) }
 
-    var isMicClicked by remember {
-        mutableStateOf(false)
-    }
-
     val scope = rememberCoroutineScope()
 
     val viewModelStoreOwner = LocalViewModelStoreOwner.current
@@ -163,18 +159,18 @@ fun ChatInputBox(
                             contentDescription = "Add attachment"
                         )
                     }
-                    IconButton(
-                        onClick = {
+                   // IconButton(
+                   //     onClick = {
 
-                        },
-                        modifier = Modifier.padding(start = 8.dp) // Adjust spacing between icons
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Camera, // Using the Camera icon from Icons.Filled
-                            contentDescription = "Camera Icon", // Provide a meaningful description for accessibility
-                            modifier = modifier // Apply any modifiers such as size or padding
-                        )
-                    }
+                  //      },
+                  //      modifier = Modifier.padding(start = 8.dp) // Adjust spacing between icons
+                 //   ) {
+                 //       Icon(
+                  //          imageVector = Icons.Filled.Camera, // Using the Camera icon from Icons.Filled
+                 //           contentDescription = "Camera Icon", // Provide a meaningful description for accessibility
+                  //          modifier = modifier// Apply any modifiers such as size or padding
+                 //       )
+                 //   }
                 }
             },
 
