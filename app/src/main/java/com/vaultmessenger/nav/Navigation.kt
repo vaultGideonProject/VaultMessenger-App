@@ -38,7 +38,7 @@ fun Navigation() {
         voiceNoteViewModel,
         ) = ProvideViewModels(context, senderUID = "null")
 
-    NavHost(navController = navController, startDestination = "splash") {
+    NavHost(navController = navController, startDestination = "sign_in") {
 
 
         composable("splash") {

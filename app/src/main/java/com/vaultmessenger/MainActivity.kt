@@ -83,6 +83,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import android.os.Build
+import android.os.CancellationSignal
 import androidx.annotation.RequiresApi
 import com.vaultmessenger.notifications.SetPermissions
 import android.os.Handler
@@ -91,8 +92,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.CredentialManagerCallback
+import androidx.credentials.exceptions.ClearCredentialException
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.room.Room
@@ -110,7 +116,10 @@ import com.vaultmessenger.ui.item.ConversationItem
 import com.vaultmessenger.ui.item.UserProfile
 import com.vaultmessenger.viewModel.ErrorsViewModel
 import dagger.hilt.EntryPoint
-import java.util.UUID
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.auth.FirebaseAuth
 
 @EntryPoint
 class MainActivity : ComponentActivity() {
@@ -397,6 +406,7 @@ fun SignOutButton(navController: NavHostController) {
     val coroutineScope = rememberCoroutineScope()
     // Access FirebaseAuth
     val auth = FirebaseService.auth
+    val context: Context = LocalContext.current
 
 // Access Firestore
     val firestore = FirebaseService.firestore
@@ -417,7 +427,8 @@ fun SignOutButton(navController: NavHostController) {
             delay(2500)
 
             // Sign out from Firebase
-            auth.signOut()
+            clearGoogleSignInCredentials(context = context)
+
 
             // Navigate to the sign-in screen
             navController.navigate("sign_in") {
@@ -523,6 +534,36 @@ fun SignOutAnimation() {
         )
     }
 }
+
+fun clearGoogleSignInCredentials(context: Context) {
+    val googleSignInClient: GoogleSignInClient = GoogleSignIn.getClient(
+        context,
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .build()
+    )
+
+    // Sign out from Google Sign-In
+    googleSignInClient.signOut().addOnCompleteListener { task ->
+        if (task.isSuccessful) {
+            println("Google Sign-In signed out successfully.")
+        } else {
+            println("Failed to sign out from Google Sign-In.")
+        }
+    }
+
+    // Revoke access to clear the credentials
+    googleSignInClient.revokeAccess().addOnCompleteListener { task ->
+        if (task.isSuccessful) {
+            println("Google Sign-In credentials revoked.")
+        } else {
+            println("Failed to revoke Google Sign-In credentials.")
+        }
+    }
+
+    // Optionally sign out from Firebase
+    FirebaseService.auth.signOut()
+}
+
 
 @Preview(showBackground = true)
 @Composable
