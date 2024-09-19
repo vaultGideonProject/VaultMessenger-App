@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,10 +42,12 @@ import com.vaultmessenger.ui.theme.VaultmessengerTheme
 import com.vaultmessenger.viewModel.ProfileViewModel
 import com.vaultmessenger.modules.FirebaseService
 import com.vaultmessenger.modules.LaunchConfigs
+import com.vaultmessenger.modules.asyncImage
 import com.vaultmessenger.viewModel.ErrorsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.UUID
+import com.vaultmessenger.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,19 +71,19 @@ fun ProfileScreen(
     val viewModel: ProfileViewModel = profileViewModel
     val user by viewModel.user.collectAsState()
     var fullName by remember {
-        mutableStateOf(user?.userName.orEmpty())
+        mutableStateOf(user!!.userName.orEmpty())
     }
     var nickName by remember {
-        mutableStateOf(user?.nickName.orEmpty())
+        mutableStateOf(user!!.nickName.orEmpty())
     }
     var dob by remember {
-        mutableStateOf(user?.dob.orEmpty())
+        mutableStateOf(user!!.dob.orEmpty())
     }
     var email by remember {
-        mutableStateOf(user?.email.orEmpty())
+        mutableStateOf(user!!.email.orEmpty())
     }
     var about by remember {
-        mutableStateOf(user?.bio.orEmpty())
+        mutableStateOf(user!!.bio.orEmpty())
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -97,7 +100,7 @@ fun ProfileScreen(
             }
         }
     }
-    val encodedUserId = user?.userId
+    val encodedUserId = user!!.userId
 
     val errorMessage by errorsViewModel.errorMessage.observeAsState(initial = "")
     val currentErrorMessage by rememberUpdatedState(errorMessage)
@@ -131,27 +134,17 @@ fun ProfileScreen(
                             .background(Color(0xFF435E91), shape = CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (user?.profilePictureUrl != null) {
-                            Image(
-                                painter = rememberAsyncImagePainter(user!!.profilePictureUrl),
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier
-                                    .size(220.dp)
-                                    .clip(CircleShape)
-                                    .clickable { imagePickerLauncher.launch("image/*") },
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Filled.AccountCircle,
-                                contentDescription = "Profile Photo",
-                                modifier = Modifier
-                                    .size(200.dp)
-                                    .padding(8.dp)
-                                    .clickable { imagePickerLauncher.launch("image/*") },
-                                tint = Color.White
-                            )
-                        }
+                        asyncImage(
+                            model = user!!.profilePictureUrl, // The URL or model for the image
+                            contentDescription = "Profile Image", // Description for accessibility
+                            placeholder = painterResource(id = R.drawable.ic_account_circle_foreground), // Placeholder while loading
+                            error = painterResource(id = R.drawable.ic_stat_name), // Error image if loading fails
+                            modifier = Modifier
+                                .size(220.dp)
+                                .clip(CircleShape)
+                                .clickable { imagePickerLauncher.launch("image/*") }, // Modifier to customize image dimensions
+                            contentScale = ContentScale.Crop, // How the image should be scaled
+                        )
 
                         Icon(
                             imageVector = Icons.Filled.Edit,

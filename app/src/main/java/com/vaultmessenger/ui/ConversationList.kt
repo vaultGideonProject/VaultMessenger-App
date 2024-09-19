@@ -45,7 +45,6 @@ import com.vaultmessenger.viewModel.ConnectivityViewModel
 import com.vaultmessenger.viewModel.ConversationViewModel
 import com.vaultmessenger.viewModel.ErrorsViewModel
 import com.vaultmessenger.viewModel.ProfileViewModel
-import com.vaultmessenger.viewModel.ReceiverUserViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,15 +59,17 @@ fun ConversationList(
     val auth = FirebaseService.auth
     val userId = auth.currentUser?.uid ?: return
     val user by profileViewModel.user.collectAsState()
-    val conversations by conversationViewModel.conversations.collectAsState(emptyList())
-    val isConnected by connectivityViewModel.isConnected.observeAsState(true)
+    // Collect conversations as StateFlow using collectAsState()
+    val conversations by conversationViewModel.subscribeToConversations()
+        .collectAsState(initial = emptyList())
+     val isConnected by connectivityViewModel.isConnected.observeAsState(true)
     val snackbarHostState = remember { SnackbarHostState() }
     val errorMessage by errorsViewModel.errorMessage.observeAsState(initial = "")
     val currentErrorMessage by rememberUpdatedState(errorMessage)
 
-    // val snackbarHostState = remember { SnackbarHostState() }
-    // val errorMessage by profileViewModel.errorMessage.collectAsState()
-    // val currentErrorMessage by rememberUpdatedState(errorMessage)
+    LaunchedEffect(userId) {
+        profileViewModel.refreshUser()
+    }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -80,7 +81,7 @@ fun ConversationList(
 
     // Use SideEffect to respond to state changes
     SideEffect {
-        currentErrorMessage?.takeIf { it.isNotBlank() }?.let { message ->
+        currentErrorMessage.takeIf { it.isNotBlank() }?.let { message ->
             scope.launch {
                 snackbarHostState.showSnackbar(message)
             }

@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.vaultmessenger.database.LocalMessage
 import com.vaultmessenger.model.ReceiverUser
+import com.vaultmessenger.viewModel.ChatViewModel
 import com.vaultmessenger.viewModel.VoiceNoteState
 import com.vaultmessenger.viewModel.VoiceNoteViewModel
 
@@ -45,6 +46,8 @@ fun ChatListItem(
     receiverUser: ReceiverUser,
     profileViewModel: ProfileViewModel,
     voiceNoteViewModel: VoiceNoteViewModel,
+    chatViewModel:ChatViewModel,
+    senderUid: String,
 ) {
 
     //get Receiver User Profile:
@@ -68,6 +71,7 @@ fun ChatListItem(
         DisposableEffect(localMessage.voiceNoteURL) {
             onDispose {
                 voiceNoteViewModel.releasePlayer(localMessage.voiceNoteURL)
+             //   voiceNoteViewModel.releaseAllPlayers(localMessage.voiceNoteURL)
             }
         }
     }
@@ -81,6 +85,16 @@ fun ChatListItem(
         return
     }
 
+    // Track whether the message has already been marked as read
+    var isMessageRead by remember { mutableStateOf(localMessage.messageRead) }
+
+    // LaunchedEffect to mark the message as read when it is displayed
+    LaunchedEffect(key1 = localMessage, key2 = isMessageRead) {
+        if (!isMessageRead!! && localMessage.userId2 == receiverUID) {
+            chatViewModel.markMessageAsRead(localMessage, senderUid, receiverUID)
+            isMessageRead = true
+        }
+    }
 
     Column(
         modifier = Modifier

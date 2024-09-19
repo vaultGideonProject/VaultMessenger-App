@@ -18,5 +18,6 @@ data class LocalMessage(
     @ColumnInfo(name = "userId1") val userId1: String = "",
     @ColumnInfo(name = "userId2") val userId2: String = "",
     @ColumnInfo(name = "loading") var loading: Boolean? = true,
-    @ColumnInfo(name = "isTyping") val isTyping: Boolean? = false
+    @ColumnInfo(name = "isTyping") val isTyping: Boolean? = false,
+    @ColumnInfo(name = "messageRead") val messageRead: Boolean? = false,
 )

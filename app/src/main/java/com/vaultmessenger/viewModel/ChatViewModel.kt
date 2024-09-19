@@ -35,6 +35,10 @@ class ChatViewModel(
     receiverUid: String,
 ) : ViewModel() {
 
+    // Map to hold the messages flow for each conversation (based on senderUid and receiverUid)
+    private val conversationMessagesFlowMap = mutableMapOf<Pair<String, String>, MutableStateFlow<List<LocalMessage>>>()
+
+
 
     // StateFlow to expose messages to the UI
     private val _messagesFlow = MutableStateFlow<List<LocalMessage>>(emptyList())
@@ -222,11 +226,44 @@ class ChatViewModel(
             sharedMessageRepository.getLocalMessages(senderUid, receiverUid).collect{
                 collectMessages ->
                 _messagesFlow.value = collectMessages
+
+                val key = Pair(senderUid, receiverUid)
+                conversationMessagesFlowMap[key]?.value = collectMessages
             }
+        }
+    }
+
+    // Function to get the messages flow for a specific conversation on conversations lists
+     fun getMessagesFlow(senderUid: String, receiverUid: String): StateFlow<List<LocalMessage>> {
+        val key = Pair(senderUid, receiverUid)
+
+        viewModelScope.launch {
+            loadMessages(senderUid, receiverUid)
+        }
+
+        return conversationMessagesFlowMap.getOrPut(key) {
+            MutableStateFlow(emptyList()) // Initialize the flow if not already present
         }
     }
 
     suspend fun loadRemoteMessages(senderUid: String, receiverUid: String){
         sharedMessageRepository.loadMessages(senderUid, receiverUid)
     }
+
+   suspend fun markMessageAsRead(localMessage: LocalMessage, senderUid: String, receiverUid: String) {
+        viewModelScope.launch {
+            try {
+                // Update the 'isRead' status in Firestore (or your chosen database)
+                sharedMessageRepository.updateMessageReadStatus(
+                    senderUid = senderUid,
+                    receiverUid = receiverUid,
+                    messageId = localMessage.conversationId,
+                    isRead = true
+                )
+            } catch (e: Exception) {
+                errorsViewModel.setError(e.message ?: "An error occurred while marking message as read")
+            }
+        }
+    }
+
 }

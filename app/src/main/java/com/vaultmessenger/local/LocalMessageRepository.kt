@@ -18,5 +18,8 @@ class LocalMessageRepository(private val messageDao: MessageDao) {
     fun getMessagesForConversation(senderUID: String, receiverUID: String): Flow<List<LocalMessage>> {
         return messageDao.getMessagesForConversation(senderUID, receiverUID)
     }
+    suspend fun updateMessageReadStatus(conversationId: String, isRead:Boolean){
+        return messageDao.updateMessageReadStatus(conversationId = conversationId, isRead = isRead)
+    }
 }
 

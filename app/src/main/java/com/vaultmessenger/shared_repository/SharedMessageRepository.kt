@@ -4,12 +4,14 @@ import android.content.Context
 import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.remoteconfig.internal.Code.NOT_FOUND
 import com.vaultmessenger.MyApp
 import com.vaultmessenger.database.LocalMessage
 import com.vaultmessenger.local.LocalMessageRepository
 import com.vaultmessenger.model.Message
 import com.vaultmessenger.modules.ChatRepository
 import com.vaultmessenger.modules.ConversationRepository
+import com.vaultmessenger.modules.FirebaseService
 import com.vaultmessenger.viewModel.ChatViewModel
 import com.vaultmessenger.viewModel.ErrorsViewModel
 import kotlinx.coroutines.NonCancellable.isActive
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class SharedMessageRepository(
     context: Context,
@@ -70,7 +73,7 @@ class SharedMessageRepository(
     }
 
     // load messages into ROOm
-    suspend fun loadMessages(senderUID: String, receiverUID: String, delayMillis: Long = 60000L) {
+    suspend fun loadMessages(senderUID: String, receiverUID: String, delayMillis: Long = 5000L) {
         while (isActive) {  // Ensure the coroutine continues running only if it's active
             try {
                 // Collect messages from chatRepository
@@ -91,6 +94,39 @@ class SharedMessageRepository(
         }
     }
 
+    suspend fun updateMessageReadStatus(senderUid: String, receiverUid: String, messageId: String, isRead: Boolean) {
+        try {
+            //Lets update or insert remote if its not there
+            // Reference to the Firestore collection for the messages
+            val messagesCollection = FirebaseService.firestore.collection("messages")
+                .document(senderUid)
+                .collection(receiverUid)
+
+            // Query the collection for the document where the "conversationId" matches the provided messageId
+            val querySnapshot = messagesCollection
+                .whereEqualTo("conversationId", messageId)
+                .get()
+                .await()  // await to suspend the function until the result is available
+
+            if (!querySnapshot.isEmpty) {
+                // If a document is found, update the "isRead" field
+                val document = querySnapshot.documents[0] // Assuming only one document matches
+                document.reference.update("isRead", isRead)
+                    .await()  // await to suspend the function until the update is complete
+                Log.d("MessageRead", "Message marked as read: $messageId")
+            } else {
+                // No document found with the matching "conversationId"
+                Log.d("MessageRead", "Message not found with conversationId: $messageId")
+            }
+
+            //then close by updating local
+            MyApp.updateMessageReadStatus(conversationId = messageId, isRead = isRead)
+
+        } catch (e: Exception) {
+            // Handle exceptions
+            Log.e("MessageRead", "Error updating message status", e)
+        }
+    }
 
 
 

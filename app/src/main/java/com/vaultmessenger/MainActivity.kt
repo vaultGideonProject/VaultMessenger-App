@@ -1,6 +1,6 @@
 package com.vaultmessenger
+
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -24,32 +24,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.rounded.Create
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,7 +49,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.firestore.firestoreSettings
@@ -72,7 +57,6 @@ import com.google.firebase.firestore.persistentCacheSettings
 import com.vaultmessenger.modules.FirebaseUserRepository
 import com.vaultmessenger.nav.Navigation
 import com.vaultmessenger.ui.theme.VaultmessengerTheme
-import com.vaultmessenger.viewModel.ConversationViewModel
 import com.vaultmessenger.viewModel.ProfileViewModel
 import com.vaultmessenger.viewModel.ProfileViewModelFactory
 import kotlinx.coroutines.delay
@@ -83,43 +67,30 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import android.os.Build
-import android.os.CancellationSignal
 import androidx.annotation.RequiresApi
 import com.vaultmessenger.notifications.SetPermissions
 import android.os.Handler
 import android.os.Looper
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
-import androidx.core.content.ContextCompat
-import androidx.credentials.ClearCredentialStateRequest
-import androidx.credentials.CredentialManager
-import androidx.credentials.CredentialManagerCallback
-import androidx.credentials.exceptions.ClearCredentialException
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.room.Room
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.initialize
 import com.google.firebase.messaging.FirebaseMessaging
-import com.vaultmessenger.database.AppDatabase
 import com.vaultmessenger.model.User
 import com.vaultmessenger.modules.FirebaseService
 import com.vaultmessenger.modules.LaunchConfigs
-import com.vaultmessenger.ui.item.ConversationItem
 import com.vaultmessenger.ui.item.UserProfile
 import com.vaultmessenger.viewModel.ErrorsViewModel
 import dagger.hilt.EntryPoint
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.firebase.auth.FirebaseAuth
 
 @EntryPoint
 class MainActivity : ComponentActivity() {
@@ -252,6 +223,8 @@ class MainActivity : ComponentActivity() {
             Log.e("MainActivity", "onStop | User ID is null, cannot update online status.")
         }
       //  getFireStoreInstance.terminate()
+
+
     }
 
     override fun onDestroy() {

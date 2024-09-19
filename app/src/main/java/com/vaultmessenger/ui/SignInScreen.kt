@@ -2,7 +2,6 @@ package com.vaultmessenger.ui
 
 import android.content.Intent
 import android.os.Build
-import android.util.Log
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
@@ -17,26 +16,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.GetCredentialResponse
-import androidx.credentials.PasswordCredential
-import androidx.credentials.PublicKeyCredential
-import androidx.credentials.provider.getCreateCredentialCredentialResponse
 import androidx.navigation.NavHostController
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.messaging.Constants.TAG
 import com.vaultmessenger.R
 import com.vaultmessenger.modules.FirebaseService
 import com.vaultmessenger.viewModel.ProfileViewModel
@@ -144,27 +133,6 @@ fun SignInScreen(
                 }
             }
         }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-fun handleCredentials(data: Intent?, firebaseAuthLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>) {
-    if (data == null) return
-
-    val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-    try {
-        val account = task.getResult(ApiException::class.java)
-        val idToken = account?.idToken
-        if (!idToken.isNullOrEmpty()) {
-            Log.i(TAG, "handleSignIn: $idToken")
-            val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
-            val intent = Intent().apply { putExtra("credential", firebaseCredential) }
-            firebaseAuthLauncher.launch(intent)
-        } else {
-            Log.e(TAG, "Google ID token is null or empty")
-        }
-    } catch (e: ApiException) {
-        Log.e(TAG, "Google sign-in failed", e)
     }
 }
 

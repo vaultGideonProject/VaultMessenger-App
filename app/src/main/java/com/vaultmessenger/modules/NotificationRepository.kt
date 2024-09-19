@@ -9,6 +9,7 @@ class NotificationRepository {
 
     private val firestore = FirebaseService.firestore
     private val functions = FirebaseService.functions
+    private val launchConfigs = LaunchConfigs()
 
     // Fetch the current token from Firestore
     fun getToken(userId: String, onResult: (String?) -> Unit) {
@@ -60,7 +61,11 @@ class NotificationRepository {
             )
 
             val endpointSendNotifications = URL(
-                "https://europe-west3-vaultmessengerdev.cloudfunctions.net/sendNotification"
+                if(launchConfigs.getEnv()){
+                    "http://127.0.0.1:5001/vaultmessengerdev/europe-west3/sendNotification"
+                }else{
+                    "https://send-notification-393456298207.europe-west3.run.app"
+                }
             )
 
             val result = functions

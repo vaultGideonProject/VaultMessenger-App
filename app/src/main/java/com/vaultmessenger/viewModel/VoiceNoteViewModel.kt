@@ -34,6 +34,12 @@ class VoiceNoteViewModel(
         exception.printStackTrace()
     }
 
+    fun releaseAllPlayers(voiceNoteId: String) {
+        players.remove(voiceNoteId)?.release()
+      //  players.clear()
+      //  progressUpdateJob?.cancel()
+    }
+
     fun setupPlayer(voiceNoteId: String, url: String) {
         // Release the current player if it exists
         players[voiceNoteId]?.release()
@@ -173,6 +179,7 @@ class VoiceNoteViewModel(
 
     fun releasePlayer(voiceNoteId: String) {
         players.remove(voiceNoteId)?.release()
+        players.clear()
     }
 
     private fun updateVoiceNoteState(voiceNoteId: String, update: (VoiceNoteState) -> VoiceNoteState) {

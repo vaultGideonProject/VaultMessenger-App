@@ -14,5 +14,6 @@ data class Message(
     val userId1: String = "",
     val userId2: String = "",
     var loading: Boolean? = true,
-    val isTyping: Boolean? = false
+    val isTyping: Boolean? = false,
+    val messageRead: Boolean? = false
 )

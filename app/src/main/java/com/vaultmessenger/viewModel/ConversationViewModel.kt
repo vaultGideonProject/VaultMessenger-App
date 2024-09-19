@@ -7,8 +7,12 @@ import com.vaultmessenger.model.Conversation
 import com.vaultmessenger.model.Message
 import com.vaultmessenger.modules.ConversationRepository
 import com.vaultmessenger.modules.FirebaseService
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
 class ConversationViewModel(
@@ -19,28 +23,24 @@ class ConversationViewModel(
     val conversations: StateFlow<List<Conversation>> get() = _conversations
 
     init {
-        subscribeToConversations()
+        viewModelScope.launch {
+            subscribeToConversations()
+        }
     }
 
     // Function to subscribe to real-time conversations
-    private fun subscribeToConversations() {
+     fun subscribeToConversations(): Flow<List<Conversation>> {
         // Access FirebaseAuth
         val auth = FirebaseService.auth
+        val userId = auth.currentUser?.uid ?: return emptyFlow()
 
-        viewModelScope.launch {
-            val userId = auth.currentUser?.uid ?: return@launch
-
-            // Subscribe to real-time updates
-            try {
-                conversationRepository.getConversationsFlow(userId).collect { conversations ->
-                    _conversations.value = conversations
-                }
-            }catch (e:Exception){
+        // Return the flow from the repository directly
+        return conversationRepository.getConversationsFlow(userId)
+            .catch { e ->
                 errorsViewModel.setError(e.message ?: "An error occurred")
-                return@launch
             }
-        }
     }
+
 
     fun setConversationBySenderId(
         senderId: String,

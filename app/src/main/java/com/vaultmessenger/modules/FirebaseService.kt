@@ -42,6 +42,8 @@ object FirebaseService {
             Log.e("FirebaseAuth", "Error getting FirebaseAuth instance: ${e.message}", e)
             // Handle the exception (e.g., return a fallback or rethrow the exception)
             FirebaseAuth.getInstance() // As a fallback, retry getting the instance
+        }finally {
+
         }
 
     val firestore: FirebaseFirestore
@@ -51,6 +53,8 @@ object FirebaseService {
             Log.e("FirebaseAuth", "Error getting FirebaseFirestore instance: ${e.message}", e)
             // Handle the exception (e.g., return a fallback or rethrow the exception)
             FirebaseFirestore.getInstance() // As a fallback, retry getting the instance
+        }finally {
+
         }
 
     val storage: FirebaseStorage
@@ -60,6 +64,8 @@ object FirebaseService {
             Log.e("FirebaseAuth", "Error getting FirebaseStorage instance: ${e.message}", e)
             // Handle the exception (e.g., return a fallback or rethrow the exception)
             FirebaseStorage.getInstance() // As a fallback, retry getting the instance
+        }finally {
+
         }
 
     val functions: FirebaseFunctions
@@ -69,5 +75,7 @@ object FirebaseService {
             Log.e("FirebaseAuth", "Error getting FirebaseFunctions instance: ${e.message}", e)
             // Handle the exception (e.g., return a fallback or rethrow the exception)
             FirebaseFunctions.getInstance() // As a fallback, retry getting the instance
+        }finally {
+
         }
 }

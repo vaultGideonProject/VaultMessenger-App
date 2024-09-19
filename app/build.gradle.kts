@@ -22,7 +22,7 @@ android {
         applicationId = "com.vaultmessenger"
         minSdk = 24
         targetSdk = 34
-        versionCode = 9
+        versionCode = 10
         versionName = "1.9.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -112,7 +112,7 @@ dependencies {implementation("androidx.core:core-ktx:1.13.1")
     implementation("com.google.code.gson:gson:2.11.0")
     implementation("androidx.annotation:annotation:1.8.2")
     implementation("com.github.dhaval2404:imagepicker:2.1")
-    implementation("org.webrtc:google-webrtc:1.0.30039@aar")
+   // implementation("org.webrtc:google-webrtc:1.0.30039@aar")
 
     val cameraxVersion = "1.3.4"
     implementation("androidx.camera:camera-core:$cameraxVersion")
