@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Vault Messenger</string>
+    <string name="notifications">NOTIFICATIONS</string>
+    <string name="contacts">CONTACTS</string>
+    <string name="messages">MESSAGES</string>
+    <string name="default_web_client_id">393456298207-vti3j8pj5e5ks179h83kblov3ldndbm5.apps.googleusercontent.com</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="channel_name">New Messages</string>
+    <string name="channel_description">Get Notifications for new Vault Messanger Messages</string>
+    <string name="default_notification_channel_id">VaultMessengerChannel</string>
+    <string name="default_notification_channel_name">VaultMessengerChannel</string>
+    <string name="default_notification_channel_description">VaultMessengerChannel Default Notifications</string>
+    <string name="nonceGoogle">asdfakjWEJFWJKA239fa</string>
+    <string name="saved_profile_key">Profile</string>
+</resources>
