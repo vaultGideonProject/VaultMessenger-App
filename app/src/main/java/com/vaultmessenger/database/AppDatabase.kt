@@ -21,6 +21,8 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun conversationDao():ConversationDao
 
+    abstract fun MessageDaoInsert():MessageDaoInsert
+
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
@@ -59,7 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "my_app"
+                    "my_app_2"
                 ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .addCallback(AppDatabaseCallback(scope)) // Callback is added here
                     .addTypeConverter(converters)
@@ -79,11 +81,9 @@ abstract class AppDatabase : RoomDatabase() {
 
             // When the database is created, insert the sample messages
             INSTANCE?.let { database ->
-               // QueryCallback { sqlQuery, bindArgs ->
-              //      println("SQL Query: $sqlQuery SQL Args: $bindArgs")
-              //  }
+
                 scope.launch {
-                   // database.clearAllTables()
+                    database.clearAllTables()
                 }
             }
         }

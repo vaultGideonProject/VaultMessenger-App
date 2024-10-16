@@ -4,8 +4,8 @@ import android.app.Application
 import android.content.Context
 import com.vaultmessenger.database.AppDatabase
 import com.vaultmessenger.database.Converters
-import com.vaultmessenger.database.LocalConversation
 import com.vaultmessenger.local.LocalConversationRepository
+import com.vaultmessenger.local.LocalMessageInsertRepository
 import com.vaultmessenger.local.LocalMessageRepository
 import com.vaultmessenger.local.LocalUserRepository
 import kotlinx.coroutines.CoroutineScope
@@ -27,6 +27,15 @@ class MyApp(context: Context) : Application() {
         LocalUserRepository(database.userDao())
     }
     val repositoryConversation by lazy {
+        LocalConversationRepository(database.conversationDao())
+    }
+    val repositoryInsertMessages by lazy {
+        LocalMessageInsertRepository(database.MessageDaoInsert())
+    }
+    val repositoryDeleteAllMessages by lazy {
+        LocalMessageRepository(database.messageDao())
+    }
+    val repositoryDeleteAllConversations by lazy {
         LocalConversationRepository(database.conversationDao())
     }
 }

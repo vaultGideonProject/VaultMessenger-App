@@ -12,7 +12,8 @@ class SharedUserRepository(
     private val context: Context,
     private val uid: String? = null,
 ) {
-    private val myApp = MyApp(context).repositoryUser
+    private val repositoryUser = MyApp(context).repositoryUser
+    private val repositoryMessages = MyApp(context).repositoryMessages
     private val auth = FirebaseService.auth
     private val remoteRepository: FirebaseUserRepository = FirebaseUserRepository()
 
@@ -39,7 +40,7 @@ class SharedUserRepository(
             remoteUser = loadedUser.toLocalUser()
         }
         println("remoteUser: $remoteUser")
-        myApp.addUser(remoteUser)
+        repositoryUser.addUser(remoteUser)
     }
 
     suspend fun getUser(): LocalUser? {
@@ -48,11 +49,11 @@ class SharedUserRepository(
             return null
         }
         fetchRemoteUser()
-        return myApp.getUser(userId)
+        return repositoryUser.getUser(userId)
     }
 
     suspend fun saveUser(user: LocalUser): LocalUser {
-        myApp.addUser(user)
+        repositoryUser.addUser(user)
         return user
     }
 
@@ -68,7 +69,7 @@ class SharedUserRepository(
     suspend fun updateUserProfilePhoto(userId: String, newProfilePictureUrl: String, user: User) {
         try {
             // Assuming you have a local database with UserDao or Firestore/Realtime Database.
-            myApp.updateUserProfilePhoto(userId, newProfilePictureUrl)
+            repositoryUser.updateUserProfilePhoto(userId, newProfilePictureUrl)
             remoteRepository.saveUser(user)
         } catch (e: Exception) {
             // Handle potential errors, such as network issues or database write failures

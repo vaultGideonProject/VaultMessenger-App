@@ -1,10 +1,12 @@
 package com.vaultmessenger.viewModel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewModelScope
 import com.vaultmessenger.database.LocalConversation
 import com.vaultmessenger.model.Message
+import com.vaultmessenger.modules.ConversationRepository
 import com.vaultmessenger.modules.FirebaseService
 import com.vaultmessenger.sharedRepository.SharedConversationRepository
 import kotlinx.coroutines.flow.Flow
@@ -16,11 +18,18 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
 class ConversationViewModel(
-    private val conversationRepository: SharedConversationRepository,
+    context: Context,
+    conversationRepository: ConversationRepository,
     private val errorsViewModel: ErrorsViewModel,
 ) : ViewModel() {
     private val _conversations = MutableStateFlow<List<LocalConversation>>(emptyList())
     val conversations: StateFlow<List<LocalConversation>> get() = _conversations
+    private val conversationRepository: SharedConversationRepository = SharedConversationRepository(
+        context,
+        this,
+        conversationRepository,
+        errorsViewModel
+    )
 
     init {
         subscribeToConversations()
@@ -44,7 +53,7 @@ class ConversationViewModel(
    private fun loadConversations(){
        viewModelScope.launch {
            val userId = FirebaseService.auth.currentUser?.uid ?: "guest"
-           conversationRepository.loadConversations(userId)
+           conversationRepository.loadConversations()
        }
    }
 

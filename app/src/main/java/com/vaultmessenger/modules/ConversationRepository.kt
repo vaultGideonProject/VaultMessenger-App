@@ -31,6 +31,10 @@ class ConversationRepository(
 ) {
     private val firestore = FirebaseService.firestore
     private val functions = FirebaseService.functions
+    val _conversationChangedFlow = MutableStateFlow(false)
+
+    // Expose StateFlow to observe the changes
+    val conversationChangedFlow: StateFlow<Boolean> = _conversationChangedFlow
 
     companion object {
         private const val TAG = "ConversationRepository"
@@ -312,4 +316,56 @@ class ConversationRepository(
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
         return sdf.format(Date())
     }
+    fun listenForConversationChanges(userId: String): StateFlow<Boolean> {
+        val messagesRef = firestore
+            .collection("conversations")
+            .document(userId)
+            .collection("messages")
+
+        var isInitialLoad = true // Flag to track the initial load
+
+        // Set up a real-time listener
+        messagesRef.addSnapshotListener { snapshots, e ->
+            if (e != null) {
+                println("Listen failed: $e")
+                return@addSnapshotListener
+            }
+
+            if (snapshots == null || snapshots.isEmpty) {
+                println("No message changes")
+                return@addSnapshotListener
+            }
+
+            var hasRelevantChanges = false
+
+            for (dc in snapshots.documentChanges) {
+                when (dc.type) {
+                    DocumentChange.Type.ADDED -> {
+                        println("New message: ${dc.document.data}")
+                        hasRelevantChanges = true
+                    }
+                    DocumentChange.Type.MODIFIED -> {
+                        println("Modified message: ${dc.document.data}")
+                        hasRelevantChanges = true
+                    }
+                    DocumentChange.Type.REMOVED -> {
+                        println("Removed message: ${dc.document.data}")
+                        hasRelevantChanges = true
+                    }
+                }
+            }
+
+            // Only update the flow if there were relevant changes and this is not the initial load
+            if (hasRelevantChanges && !isInitialLoad) {
+                _conversationChangedFlow.value = true
+            }
+
+            // Mark initial load as complete after the first snapshot is processed
+            isInitialLoad = false
+        }
+
+        // Return the StateFlow to allow observing the flow of changes
+        return conversationChangedFlow
+    }
+
 }

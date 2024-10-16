@@ -97,7 +97,7 @@ fun ChatInputBox(
                         scope.launch {
                             val getToken = profileViewModel.getUserToken(userId = receiverUID)
                             profileViewModel.isUserOnlineStatus(receiverUID) { isOnline ->
-                                if (!isOnline) {
+                                if (isOnline == false) {
                                     getToken?.let { token ->
                                         notificationsViewModel.sendNotification(
                                             token = token,

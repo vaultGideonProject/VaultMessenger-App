@@ -101,6 +101,12 @@ class MainActivity : ComponentActivity() {
 
         val launchConfigs =  LaunchConfigs()
 
+        //fix for sticky roomDB and help keep it fresh after reinstall
+       lifecycleScope.launch {
+           MyApp(this@MainActivity).repositoryDeleteAllMessages.deleteAllMessages()
+           MyApp(this@MainActivity).repositoryDeleteAllConversations.deleteAllConversations()
+       }
+
         if(BuildConfig.DEBUG){
             try {
                 Firebase.initialize(context = this)

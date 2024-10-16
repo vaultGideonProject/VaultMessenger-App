@@ -75,29 +75,27 @@ fun ConversationItem(
     val conversationTimestamp: String = conversation.timestamp
     val formattedTime = formatTimestamp(conversationTimestamp)
     val context: Context = LocalContext.current
-    val messageReady by chatViewModel.messagesReady.collectAsStateWithLifecycle()
 
     //Lets set conversation count of new messages!
 
-    // Get the messages flow for this specific conversation
-    val messagesFlow by chatViewModel.messagesFlow.collectAsState()
+    // Get the specific conversation messages flow using the viewModel function
+    val messagesFlow = chatViewModel.messagesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
 // Calculate unread messages and handle image file
     var unreadConversationCount by remember { mutableIntStateOf(0) }
     var imageFile by remember { mutableStateOf<File?>(null) }
 
-    LaunchedEffect(userId, receiverUID) {
-        chatViewModel.getMessagesFlow(userId!!, receiverUID!!)
-    }
 
-    LaunchedEffect(userId, receiverUID, messagesFlow, conversation.lastMessage) {
-        val filteredMessages = messagesFlow.filter {
-            (it.userId1 == receiverUID && it.userId2 == userId) ||
+    LaunchedEffect(userId, receiverUID, messagesFlow.value, conversation.lastMessage) {
+        val filteredMessages = messagesFlow.value.filter {
+            it.messageRead == false && (it.userId1 == receiverUID && it.userId2 == userId) ||
                     (it.userId1 == userId && it.userId2 == receiverUID)
         }
 
+        // Calculate the unread messages
         unreadConversationCount = countUnreadMessages(filteredMessages)
     }
+
     LaunchedEffect(pictureURL) {
         withContext(Dispatchers.IO) {
             // Log the URL for debugging

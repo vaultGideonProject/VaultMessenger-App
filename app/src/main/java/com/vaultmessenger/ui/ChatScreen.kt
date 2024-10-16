@@ -1,12 +1,17 @@
 package com.vaultmessenger.ui
 
 import NotificationsViewModel
+import android.util.Log
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ChargingStation
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.sharp.Cached
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -29,9 +34,13 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vaultmessenger.R
 import com.vaultmessenger.database.LocalUser
 import com.vaultmessenger.viewModel.provideViewModels
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,19 +58,23 @@ fun ChatScreen(
     voiceNoteViewModel: VoiceNoteViewModel,
 ) {
     val context = LocalContext.current
-    val (chatViewModel, _, _, _, _, _) = provideViewModels(context = context, senderUID = senderUID, receiverUID = receiverUID)
+    val (chatViewModel, _, _, _, _, _) = provideViewModels(context = context,
+        senderUID = senderUID,
+        receiverUID = receiverUID)
 
     val viewModelStoreOwner = LocalViewModelStoreOwner.current
 
     // Collect state lazily
-    val messagesList by chatViewModel.messagesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val messagesFlow by chatViewModel.messagesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val messageReady by chatViewModel.messagesReady.collectAsStateWithLifecycle(false)
+
 
     val snackbarHostState = remember { SnackbarHostState() }
     val errorMessage by errorsViewModel.errorMessage.observeAsState(initial = "")
     val currentErrorMessage by rememberUpdatedState(errorMessage)
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val showNoMessages = remember { mutableStateOf(false) }
 
     val showScrollDownButton by remember {derivedStateOf {
         listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 } }
@@ -71,9 +84,20 @@ fun ChatScreen(
     }
 
     // Scroll to bottom when messagesList changes
-    LaunchedEffect(messagesList.size) {
-        if (messagesList.isNotEmpty()) {
-            listState.animateScrollToItem(messagesList.size - 1)
+    LaunchedEffect(messagesFlow.size) {
+        if (messagesFlow.isNotEmpty()) {
+            listState.animateScrollToItem(messagesFlow.size - 1)
+        }
+    }
+
+    // LaunchedEffect to handle delay
+    LaunchedEffect(messageReady, messagesFlow) {
+        if (!messageReady || messagesFlow.isEmpty()) {
+            // Delay for 2 seconds before showing "No Messages" UI
+            delay(10000)
+            showNoMessages.value = true
+        } else {
+            showNoMessages.value = false // Reset if messages are present
         }
     }
 
@@ -149,7 +173,37 @@ fun ChatScreen(
                     contentPadding = PaddingValues(16.dp),
                     reverseLayout = false // Display messages in order
                 ) {
-                    items(messagesList, key = { it.conversationId ?: UUID.randomUUID() }) { localMessage ->
+                    if (showNoMessages.value) {
+                        // Show a "No Message" image and text when there are no messages or messageReady is false
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillParentMaxSize()
+                            ) {
+                                Column(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    // Display an image (replace with your own image resource)
+                                    Icon(
+                                        imageVector = Icons.Sharp.Cached, // Choose any icon you prefer
+                                        contentDescription = "No messages",
+                                        modifier = Modifier.size(120.dp), // Customize size
+                                        tint = MaterialTheme.colorScheme.onBackground // Set the tint color
+                                    )
+
+                                    // Text under the image
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "No Messages Yet",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                }
+                            }
+                        }
+                    } else{
+                    items(messagesFlow, key = { it.conversationId ?: UUID.randomUUID() }) { localMessage ->
                         ChatListItem(
                             localMessage = localMessage,
                             receiverUID = receiverUID,
@@ -160,6 +214,7 @@ fun ChatScreen(
                             senderUid = senderUID
                         )
                     }
+                    }
                 }
 
                 // Scroll down button
@@ -167,7 +222,7 @@ fun ChatScreen(
                     FloatingActionButton(
                         onClick = {
                             scope.launch {
-                                listState.animateScrollToItem(messagesList.size - 1) // Scroll to bottom
+                                listState.animateScrollToItem(messagesFlow.size - 1) // Scroll to bottom
 
                             }
                         },

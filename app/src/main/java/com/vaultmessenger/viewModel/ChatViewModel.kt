@@ -34,14 +34,13 @@ class ChatViewModel(
     private val errorsViewModel: ErrorsViewModel,
     context: Context,
     conversationViewModel: ConversationViewModel,
+    chatRepository: ChatRepository,
     senderUid: String,
     receiverUid: String,
 ) : ViewModel() {
 
     // Map to hold the messages flow for each conversation (based on senderUid and receiverUid)
     private val conversationMessagesFlowMap = mutableMapOf<Pair<String, String>, MutableStateFlow<List<LocalMessage>>>()
-
-
 
     // StateFlow to expose messages to the UI
     private val _messagesFlow = MutableStateFlow<List<LocalMessage>>(emptyList())
@@ -53,7 +52,7 @@ class ChatViewModel(
 
     private val sharedMessageRepository: SharedMessageRepository =
         SharedMessageRepository(context = context, errorsViewModel,
-            this, senderUid, receiverUid)
+            this, senderUID = senderUid, receiverUID = receiverUid, chatRepository = chatRepository)
 
     private val _isMessageValid = MutableStateFlow(true)
     val isMessageValid: StateFlow<Boolean> = _isMessageValid.asStateFlow()
@@ -66,7 +65,7 @@ class ChatViewModel(
 
     private var voiceRecorder: VoiceRecorder? = null
     private var audioFile: File? = null
-
+    private val chatRepo = chatRepository
 
     private var conversationId: String? = null
 
@@ -227,11 +226,14 @@ class ChatViewModel(
     // Load messages from Room
     private fun localMessages(senderUid: String, receiverUid: String){
         viewModelScope.launch {
-            sharedMessageRepository.getLocalMessages(senderUid, receiverUid).collectLatest{
+            sharedMessageRepository.getMessages(senderUid, receiverUid).collectLatest{
                     collectMessages ->
                 _messagesFlow.value = collectMessages
-
-                Log.d("LoadMessages", messagesFlow.value.toString())
+                if(collectMessages.isNotEmpty()){
+                    _messagesReady.value = true
+                   val messageChange = chatRepo.listenForMessageChanges(senderUid, receiverUid)
+                    Log.d("messageChange", messageChange.value.toString())
+                }
 
                 val key = Pair(senderUid, receiverUid)
                 conversationMessagesFlowMap[key]?.value = collectMessages
@@ -252,10 +254,6 @@ class ChatViewModel(
         }
     }
 
-   private suspend fun loadRemoteMessages(senderUid: String, receiverUid: String){
-        sharedMessageRepository.loadMessages(senderUid, receiverUid)
-        _messagesReady.value = true
-    }
 
     suspend fun markMessageAsRead(localMessage: LocalMessage, senderUid: String, receiverUid: String) {
         viewModelScope.launch {
@@ -265,7 +263,7 @@ class ChatViewModel(
                     senderUid = senderUid,
                     receiverUid = receiverUid,
                     messageId = localMessage.conversationId,
-                    isRead = true
+                    messageRead = true
                 )
             } catch (e: Exception) {
                 errorsViewModel.setError(e.message ?: "An error occurred while marking message as read")
@@ -273,4 +271,7 @@ class ChatViewModel(
         }
     }
 
+    suspend fun getMessagesForReceiver(receiverUid: String){
+
+    }
 }

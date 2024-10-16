@@ -10,8 +10,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MessageDao {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertMessages(localMessages: List<LocalMessage>): List<Long>
 
     // Return Flow directly from Room
     @Query("""
@@ -20,14 +18,14 @@ interface MessageDao {
     OR (userId1 = :receiverUID AND userId2 = :senderUID)
     ORDER BY timestamp ASC
     """)
-    fun getMessagesForConversation(senderUID: String, receiverUID: String): Flow<List<LocalMessage>>
+   fun getMessagesForConversation(senderUID: String, receiverUID: String): Flow<List<LocalMessage>>
 
 
     @Query("DELETE  FROM message")
-    fun deleteAll()
+   suspend fun deleteAllMessages()
 
-    @Query("UPDATE message SET messageRead = :isRead WHERE conversationId = :conversationId")
-    suspend fun updateMessageReadStatus(conversationId: String, isRead: Boolean)
+    @Query("UPDATE message SET messageRead = :messageRead WHERE conversationId = :conversationId")
+    suspend fun updateMessageReadStatus(conversationId: String, messageRead: Boolean)
 
 }
 

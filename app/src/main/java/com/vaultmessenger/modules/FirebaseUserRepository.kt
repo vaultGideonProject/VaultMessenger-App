@@ -153,7 +153,7 @@ class FirebaseUserRepository(private val uid: String? = null) {
             val snapshot = userRef.get().await()
 
             if (snapshot.exists()) {
-                snapshot.getString("status") == "ONLINE"
+                snapshot.getString("status") == "online"
             } else {
                 Log.w("FirebaseUserRepository", "User document does not exist for userId: $userId")
                 false

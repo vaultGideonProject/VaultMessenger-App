@@ -20,7 +20,7 @@ interface ConversationDao {
     fun getMessagesForConversation(userId: String): Flow<List<LocalConversation>>
 
     @Query("DELETE FROM conversation") // Correct table name
-    suspend fun deleteAll()
+    suspend fun deleteAllConversations()
 
     @Query("UPDATE conversation SET lastMessage = :isRead WHERE conversationId = :conversationId")
     suspend fun updateMessageReadStatus(conversationId: String, isRead: Boolean)
