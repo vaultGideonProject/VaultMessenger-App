@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.retry
 
 class LocalMessageRepository(private val messageDao: MessageDao) {
     // Fetch messages using Flow directly from Room
-   fun getMessagesForConversation(senderUID: String, receiverUID: String): Flow<List<LocalMessage>> {
+  suspend fun getMessagesForConversation(senderUID: String, receiverUID: String): Flow<List<LocalMessage>> {
         return messageDao.getMessagesForConversation(senderUID, receiverUID)
 
     }

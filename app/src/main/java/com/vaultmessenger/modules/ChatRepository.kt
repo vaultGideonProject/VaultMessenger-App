@@ -3,6 +3,8 @@ package com.vaultmessenger.modules
 import android.util.Log
 import androidx.compose.runtime.internal.illegalDecoyCallException
 import com.google.firebase.firestore.DocumentChange
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import com.google.gson.Gson
 import com.vaultmessenger.model.Message
 import kotlinx.coroutines.Dispatchers
@@ -146,7 +148,10 @@ class ChatRepository() {
                 return@addSnapshotListener
             }
 
-            if (snapshots == null || snapshots.isEmpty) {
+            if (
+                snapshots == null ||
+                snapshots.isEmpty
+                ) {
                 println("No message changes")
                 return@addSnapshotListener
             }

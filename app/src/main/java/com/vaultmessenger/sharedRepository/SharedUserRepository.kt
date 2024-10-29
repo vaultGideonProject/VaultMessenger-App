@@ -35,35 +35,63 @@ class SharedUserRepository(
 
     // Updated function name to avoid conflict with 'remoteUser' variable
     private suspend fun fetchRemoteUser() {
-        val loadedUser = remoteRepository.getUser()
-        if (loadedUser != null) {
-            remoteUser = loadedUser.toLocalUser()
+        try {
+            val loadedUser = remoteRepository.getUser()
+            if (loadedUser != null) {
+                remoteUser = loadedUser.toLocalUser()
+            }
+            println("remoteUser: $remoteUser")
+            repositoryUser.addUser(remoteUser)
+        } catch (e: Exception) {
+            // Handle any exceptions that might occur
+            println("Error fetching remote user: ${e.message}")
+            e.printStackTrace()
         }
-        println("remoteUser: $remoteUser")
-        repositoryUser.addUser(remoteUser)
     }
+
 
     suspend fun getUser(): LocalUser? {
-        val userId = getCurrentUserId()
-        if (userId == "guest") {
-            return null
+        return try {
+            val userId = getCurrentUserId()
+            if (userId == "guest") {
+                return null
+            }
+            fetchRemoteUser() // This is a suspend function, so it can throw exceptions.
+            repositoryUser.getUser(userId) // Returns the user if found
+        } catch (e: Exception) {
+            // Handle any exceptions that might occur
+            println("Error in getUser: ${e.message}")
+            e.printStackTrace()
+            null // Return null if an exception occurs
         }
-        fetchRemoteUser()
-        return repositoryUser.getUser(userId)
     }
+
 
     suspend fun saveUser(user: LocalUser): LocalUser {
-        repositoryUser.addUser(user)
-        return user
+        return try {
+            repositoryUser.addUser(user)
+            remoteRepository.saveUser(user.toUser())  // Save to Firestore
+            user
+        } catch (e: Exception) {
+            Log.e("SharedUserRepository", "Error saving user: ${e.message}", e)
+            throw Exception("Failed to save user: ${e.message}")
+        }
     }
 
+
     suspend fun updateOnlineStatus(userId: String, status: String) {
-        remoteRepository.updateOnlineStatus(userId, status)
-       // fetchRemoteUser()
+        try {
+            remoteRepository.updateOnlineStatus(userId, status)
+        }catch (e: Exception){
+        }
     }
 
     suspend fun isUserOnlineStatus(userId: String): Boolean {
-        return remoteRepository.isUserOnlineStatus(userId)
+        return try {
+            remoteRepository.isUserOnlineStatus(userId)
+        }catch (e: Exception){
+            return false
+        }
     }
 
     suspend fun updateUserProfilePhoto(userId: String, newProfilePictureUrl: String, user: User) {
@@ -82,6 +110,20 @@ class SharedUserRepository(
     // Convert the Firebase User model to LocalUser
     private fun User.toLocalUser(): LocalUser {
         return LocalUser(
+            userId = this.userId,
+            userName = this.userName,
+            email = this.email,
+            profilePictureUrl = this.profilePictureUrl,
+            nickName = this.nickName,
+            bio = this.bio,
+            dob = this.dob,
+            status = this.status,
+            hashUserId = this.hashUserId
+        )
+    }
+
+    private fun LocalUser.toUser(): User {
+        return User(
             userId = this.userId,
             userName = this.userName,
             email = this.email,

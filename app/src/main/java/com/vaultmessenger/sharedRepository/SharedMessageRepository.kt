@@ -59,7 +59,7 @@ class SharedMessageRepository(
     }
 
     // Load messages from Room
-   private fun getLocalMessages(senderUID: String, receiverUID: String): Flow< List<LocalMessage>> {
+   private suspend fun getLocalMessages(senderUID: String, receiverUID: String): Flow< List<LocalMessage>> {
         return repositoryMessages.getMessagesForConversation(senderUID, receiverUID)
     }
 
@@ -99,11 +99,13 @@ class SharedMessageRepository(
         chatViewModel.viewModelScope.launch {
             remoteMessages(senderUID, receiverUID)
 
-            listenForMessageChanges.collectLatest {
-                messageChangedFlow ->
-                if(messageChangedFlow){
-                    remoteMessages(senderUID, receiverUID)
-                    chatRepository._messageChangedFlow.value = false
+            withContext(Dispatchers.IO){
+                listenForMessageChanges.collectLatest {
+                        messageChangedFlow ->
+                    if(messageChangedFlow){
+                        remoteMessages(senderUID, receiverUID)
+                        chatRepository._messageChangedFlow.value = false
+                    }
                 }
             }
         }

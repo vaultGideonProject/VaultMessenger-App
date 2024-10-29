@@ -3,6 +3,7 @@ package com.vaultmessenger.ui.item
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -88,6 +89,8 @@ fun ChatListItem(
     // Track whether the message has already been marked as read
     var isMessageRead by remember { mutableStateOf(localMessage.messageRead) }
 
+    val isDropDownExpanded = remember { mutableStateOf(false) }
+
     // LaunchedEffect to mark the message as read when it is displayed
     LaunchedEffect(key1 = localMessage, key2 = isMessageRead) {
         if (!isMessageRead!! && localMessage.userId2 == receiverUID) {
@@ -138,7 +141,14 @@ fun ChatListItem(
                         }
                     )
                     .padding(16.dp)
+                    .clickable(
+                        onClick = {
+                            isDropDownExpanded.value = true
+                        }
+                    )
             ) {
+                ChatMessagesItemMenu(isDropDownExpanded)
+
                 if(localMessage.messageText.isNotBlank()){
                     ChatTextMessage(localMessage = localMessage)
                 }

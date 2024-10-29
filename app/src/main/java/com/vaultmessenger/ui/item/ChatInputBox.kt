@@ -11,6 +11,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Stop
@@ -21,8 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavController
@@ -130,7 +134,14 @@ fun ChatInputBox(
             onValueChange = { newText ->
                 chatInputBox = newText
             },
-
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                autoCorrectEnabled = null,
+                keyboardType = KeyboardType.Ascii,
+                showKeyboardOnFocus = false,
+            ),
+            minLines = 1,
+            maxLines = 6,
             modifier = Modifier
                 .weight(1f)
                 .padding(4.dp),
@@ -159,18 +170,6 @@ fun ChatInputBox(
                             contentDescription = "Add attachment"
                         )
                     }
-                   // IconButton(
-                   //     onClick = {
-
-                  //      },
-                  //      modifier = Modifier.padding(start = 8.dp) // Adjust spacing between icons
-                 //   ) {
-                 //       Icon(
-                  //          imageVector = Icons.Filled.Camera, // Using the Camera icon from Icons.Filled
-                 //           contentDescription = "Camera Icon", // Provide a meaningful description for accessibility
-                  //          modifier = modifier// Apply any modifiers such as size or padding
-                 //       )
-                 //   }
                 }
             },
 

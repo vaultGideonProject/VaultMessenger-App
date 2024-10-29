@@ -51,6 +51,8 @@ import com.vaultmessenger.modules.remoteImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.LocalDate
+import java.time.Period
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -85,6 +87,7 @@ fun ProfileScreen(
                 modifier = Modifier.size(50.dp) // Size of the progress indicator
             )
         }
+        return
     }
 
     val user by viewModel.user.collectAsState()
@@ -285,6 +288,7 @@ fun ProfileScreen(
                                         dob = dob,
                                         email = email,
                                         about = about,
+                                       photoURL = user?.profilePictureUrl,
                                         errorsViewModel = errorsViewModel
                                     )
                                     if (!isInputValid){
@@ -351,14 +355,14 @@ fun CopyableText(text: String, scope: CoroutineScope, snackbarHostState: Snackba
             .padding(16.dp), // Adjust padding as needed
         overflow = TextOverflow.Ellipsis // Handle overflow if needed
     )
-}
-@RequiresApi(Build.VERSION_CODES.O)
+}@RequiresApi(Build.VERSION_CODES.O)
 fun validateInput(
     fullName: String?,
     nickName: String?,
     dob: String?,
     email: String?,
     about: String?,
+    photoURL: String?,
     errorsViewModel: ErrorsViewModel
 ): Boolean {
 
@@ -376,7 +380,7 @@ fun validateInput(
 
     // Date of birth validation (must be 16 years or older)
     if (!isValidDob(dob)) {
-        errorsViewModel.setError("You must be at least 16 years old. Pattern yyyy-MM-dd")
+        errorsViewModel.setError("You must be at least 16 years old. Format: yyyy-MM-dd")
         return false
     }
 
@@ -392,35 +396,41 @@ fun validateInput(
         return false
     }
 
+    // Profile photo URL validation
+    if (photoURL.isNullOrBlank() || !isValidPhotoUrl(photoURL)) {
+        errorsViewModel.setError("Please upload a valid photo URL.")
+        return false
+    }
+
     // Validation successful
     return true
 }
-// Full name validation (name and surname only)
+
+// Helper function to validate full name
 fun isValidFullName(fullName: String?): Boolean {
-    if (fullName.isNullOrBlank()) return false
-    val nameParts = fullName.trim().split("\\s+".toRegex())
-    return nameParts.size == 2
+    return fullName?.trim()?.split(" ")?.size == 2
 }
 
-// Nickname validation (one word, max 10 characters)
+// Helper function to validate nickname
 fun isValidNickName(nickName: String?): Boolean {
-    if (nickName.isNullOrBlank()) return false
-    return nickName.length <= 10 && !nickName.contains("\\s".toRegex())
+    return nickName?.trim()?.length in 1..10 && !nickName?.contains(" ")!!
 }
 
-// Date of birth validation (must be at least 16 years old)
+// Helper function to validate date of birth
 @RequiresApi(Build.VERSION_CODES.O)
 fun isValidDob(dob: String?): Boolean {
-    if (dob.isNullOrBlank()) return false
-    try {
-        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val birthDate = java.time.LocalDate.parse(dob, formatter)
-        val today = java.time.LocalDate.now()
-        val age = java.time.Period.between(birthDate, today).years
-        return age >= 16
+    return try {
+        val date = LocalDate.parse(dob)
+        val age = Period.between(date, LocalDate.now()).years
+        age >= 16
     } catch (e: Exception) {
-        return false
+        false
     }
 }
 
+// Helper function to validate profile photo URL
+fun isValidPhotoUrl(photoURL: String?): Boolean {
+    return !photoURL.isNullOrBlank() &&
+            (photoURL.startsWith("http://") || photoURL.startsWith("https://"))
+}
 

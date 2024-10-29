@@ -79,16 +79,16 @@ fun ConversationItem(
     //Lets set conversation count of new messages!
 
     // Get the specific conversation messages flow using the viewModel function
-    val messagesFlow = chatViewModel.messagesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val messagesFlow = chatViewModel.getMessagesFlow(userId!!, receiverUID!!)
 
 // Calculate unread messages and handle image file
     var unreadConversationCount by remember { mutableIntStateOf(0) }
     var imageFile by remember { mutableStateOf<File?>(null) }
 
 
-    LaunchedEffect(userId, receiverUID, messagesFlow.value, conversation.lastMessage) {
+    LaunchedEffect(userId, receiverUID, conversation.lastMessage) {
         val filteredMessages = messagesFlow.value.filter {
-            it.messageRead == false && (it.userId1 == receiverUID && it.userId2 == userId) ||
+            (it.userId1 == receiverUID && it.userId2 == userId) ||
                     (it.userId1 == userId && it.userId2 == receiverUID)
         }
 

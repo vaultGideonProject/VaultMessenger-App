@@ -20,7 +20,7 @@ android {
         applicationId = "com.vaultmessenger"
         minSdk = 24
         targetSdk = 34
-        versionCode = 17
+        versionCode = 19
         versionName = "1.9.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -72,17 +72,17 @@ android {
 
 dependencies {implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
-    implementation("androidx.activity:activity-compose:1.9.2")
-    implementation(platform("androidx.compose:compose-bom:2024.09.03"))
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation(platform("androidx.compose:compose-bom:2024.10.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.navigation:navigation-compose:2.8.2")
-    implementation("androidx.compose.material:material:1.7.3")
+    implementation("androidx.navigation:navigation-compose:2.8.3")
+    implementation("androidx.compose.material:material:1.7.4")
     implementation("com.google.accompanist:accompanist-pager:0.36.0")
     implementation("com.google.accompanist:accompanist-pager-indicators:0.36.0")
-    implementation("androidx.compose.runtime:runtime-livedata:1.7.3")
+    implementation("androidx.compose.runtime:runtime-livedata:1.7.4")
     implementation("com.google.firebase:firebase-crashlytics:19.2.0")
     implementation("com.google.firebase:firebase-perf:21.0.1")
     implementation("com.google.firebase:firebase-auth:23.0.0")
@@ -94,8 +94,8 @@ dependencies {implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.paging:paging-common-android:3.3.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("androidx.paging:paging-compose:3.3.2")
-    implementation("androidx.compose.ui:ui-text-google-fonts:1.7.3")
-    implementation("androidx.compose.ui:ui-geometry:1.7.3")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.7.4")
+    implementation("androidx.compose.ui:ui-geometry:1.7.4")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     implementation("androidx.test:core-ktx:1.6.1")
     implementation("androidx.navigation:navigation-testing:2.8.2")
@@ -104,11 +104,11 @@ dependencies {implementation("androidx.core:core-ktx:1.13.1")
     implementation("com.google.firebase:firebase-messaging:24.0.2")
     implementation("com.google.firebase:firebase-functions:21.0.0")
     implementation("com.google.firebase:firebase-database:21.0.0")
-    implementation("androidx.compose.material:material-icons-extended:1.7.3")
+    implementation("androidx.compose.material:material-icons-extended:1.7.4")
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")
     implementation("com.google.code.gson:gson:2.11.0")
-    implementation("androidx.annotation:annotation:1.8.2")
+    implementation("androidx.annotation:annotation:1.9.0")
     implementation("com.github.dhaval2404:imagepicker:2.1")
     implementation("com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1")
     // implementation("org.webrtc:google-webrtc:1.0.30039@aar")
