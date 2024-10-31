@@ -57,6 +57,8 @@ fun ChatInputBox(
     chatViewModel: ChatViewModel,
     conversationViewModel: ConversationViewModel,
     navController: NavController,
+    MenuActionItem:MutableState<String>,
+    replyMessage: MutableState<String?>,
 ) {
     var chatInputBox by remember { mutableStateOf(TextFieldValue("")) }
 
@@ -122,152 +124,158 @@ fun ChatInputBox(
         }
     }
 
-    Row(
-        modifier = modifier
-            .padding(1.dp)
-            .background(Color(0xFFF6F7FA))
-            .padding(horizontal = 1.dp, vertical = 0.dp),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        TextField(
-            value = chatInputBox,
-            onValueChange = { newText ->
-                chatInputBox = newText
-            },
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Sentences,
-                autoCorrectEnabled = null,
-                keyboardType = KeyboardType.Ascii,
-                showKeyboardOnFocus = false,
-            ),
-            minLines = 1,
-            maxLines = 6,
-            modifier = Modifier
-                .weight(1f)
-                .padding(4.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent,
-                focusedLeadingIconColor = Color.Blue,
-                unfocusedLeadingIconColor = Color.Gray, // Use your desired color
-                disabledLeadingIconColor = Color.LightGray, // Use your desired color
-                focusedTrailingIconColor = Color.Blue,
-                unfocusedTrailingIconColor = Color.Gray, // Use your desired color
-                disabledTrailingIconColor = Color.LightGray // Use your desired color
-            ),
-            leadingIcon = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                ) {
-                    IconButton(
-                        onClick = { imagePickerLauncher.launch("image/*") },
+    Column(modifier = modifier.padding(1.dp).background(Color(0xFFF6F7FA))) {
+        if(MenuActionItem.value.isNotEmpty() && MenuActionItem.value == "reply"){
+            ChatReplyInputChip(
+                messageText = replyMessage.value!!,
+                onClose = { MenuActionItem.value = ""; replyMessage.value = "" },
+                modifier = Modifier.padding(1.dp).fillMaxWidth() // Adjust padding as needed
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.Bottom
+        ) {
+            TextField(
+                value = chatInputBox,
+                onValueChange = { newText ->
+                    chatInputBox = newText
+                },
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    autoCorrectEnabled = null,
+                    keyboardType = KeyboardType.Ascii,
+                    showKeyboardOnFocus = false,
+                ),
+                minLines = 1,
+                maxLines = 6,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(4.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    focusedLeadingIconColor = Color.Blue,
+                    unfocusedLeadingIconColor = Color.Gray, // Use your desired color
+                    disabledLeadingIconColor = Color.LightGray, // Use your desired color
+                    focusedTrailingIconColor = Color.Blue,
+                    unfocusedTrailingIconColor = Color.Gray, // Use your desired color
+                    disabledTrailingIconColor = Color.LightGray // Use your desired color
+                ),
+                leadingIcon = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 4.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.baseline_attach_file_24),
-                            contentDescription = "Add attachment"
-                        )
+                        IconButton(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.baseline_attach_file_24),
+                                contentDescription = "Add attachment"
+                            )
+                        }
                     }
+                },
+
+                placeholder = {
+                    Text(text = "Type something")
                 }
-            },
+            )
 
-            placeholder = {
-                Text(text = "Type something")
-            }
-        )
+            IconButton(
+                onClick = {
+                    val msgText = chatInputBox.text
+                    if (msgText.isBlank()) return@IconButton
 
-        IconButton(
-            onClick = {
-                val msgText = chatInputBox.text
-                if (msgText.isBlank()) return@IconButton
+                    val messageToSend = Message(
+                        messageText = msgText,
+                        name = name,
+                        photoUrl = photoUrl,
+                        timestamp = System.currentTimeMillis().toString(),
+                        userId1 = senderUID,
+                        userId2 = receiverUID,
+                        conversationId = generateConversationId(),
+                        imageUrl = null
+                    )
 
-                val messageToSend = Message(
-                    messageText = msgText,
-                    name = name,
-                    photoUrl = photoUrl,
-                    timestamp = System.currentTimeMillis().toString(),
-                    userId1 = senderUID,
-                    userId2 = receiverUID,
-                    conversationId = generateConversationId(),
-                    imageUrl = null
-                )
+                    val conversationToSend = Conversation(
+                        conversationId = messageToSend.conversationId!!,
+                        lastMessage = msgText,
+                        timestamp = System.currentTimeMillis().toString(),
+                        userIds = conversationUserIds,
+                        userNames = conversationUserNames,
+                        userPhotos = conversationUserProfilePhotos
+                    )
 
-                val conversationToSend = Conversation(
-                    conversationId = messageToSend.conversationId!!,
-                    lastMessage = msgText,
-                    timestamp = System.currentTimeMillis().toString(),
-                    userIds = conversationUserIds,
-                    userNames = conversationUserNames,
-                    userPhotos = conversationUserProfilePhotos
-                )
+                    // Call the onSendMessage lambda
+                    onSendMessage(messageToSend, conversationToSend)
 
-                // Call the onSendMessage lambda
-                onSendMessage(messageToSend, conversationToSend)
-
-                scope.launch {
-                    val getToken = profileViewModel.getUserToken(userId = receiverUID)
-                    profileViewModel.isUserOnlineStatus(receiverUID) { isOnline ->
-                        if (!isOnline) {
-                            getToken?.let { token ->
-                                notificationsViewModel.sendNotification(
-                                    token = token,
-                                    body = messageToSend.messageText,
-                                    title = name,
-                                    imageURL = photoUrl
-                                )
+                    scope.launch {
+                        val getToken = profileViewModel.getUserToken(userId = receiverUID)
+                        profileViewModel.isUserOnlineStatus(receiverUID) { isOnline ->
+                            if (!isOnline) {
+                                getToken?.let { token ->
+                                    notificationsViewModel.sendNotification(
+                                        token = token,
+                                        body = messageToSend.messageText,
+                                        title = name,
+                                        imageURL = photoUrl
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                // Clear the chat input box
-                chatInputBox = TextFieldValue("")
-            },
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(Color(0xFF0D62CA))
-                .align(Alignment.CenterVertically)
-        )
-        {
-            if (chatInputBox.text.isEmpty()) {
-                //lets set mic icon and function
-                PulsingMicIcon(
-                    chatViewModel = chatViewModel,
-                    receiverUID = receiverUID,
-                    senderUID = senderUID,
-                    conversationViewModel = conversationViewModel,
-                    viewModelStoreOwner = viewModelStoreOwner,
-                    userName = name,
-                    profilePhoto = photoUrl,
-                    onSuccess = {sendNotification->
-                        if(sendNotification){
-                            scope.launch {
-                                val getToken = profileViewModel.getUserToken(userId = receiverUID)
-                                profileViewModel.isUserOnlineStatus(receiverUID) { isOnline ->
-                                    if (!isOnline) {
-                                        getToken?.let { token ->
-                                            notificationsViewModel.sendNotification(
-                                                token = token,
-                                                body = "[sent you a recording]",
-                                                title = name,
-                                                imageURL = photoUrl
-                                            )
+                    // Clear the chat input box
+                    chatInputBox = TextFieldValue("")
+                },
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color(0xFF0D62CA))
+                    .align(Alignment.CenterVertically)
+            )
+            {
+                if (chatInputBox.text.isEmpty()) {
+                    //lets set mic icon and function
+                    PulsingMicIcon(
+                        chatViewModel = chatViewModel,
+                        receiverUID = receiverUID,
+                        senderUID = senderUID,
+                        conversationViewModel = conversationViewModel,
+                        viewModelStoreOwner = viewModelStoreOwner,
+                        userName = name,
+                        profilePhoto = photoUrl,
+                        onSuccess = { sendNotification ->
+                            if (sendNotification) {
+                                scope.launch {
+                                    val getToken =
+                                        profileViewModel.getUserToken(userId = receiverUID)
+                                    profileViewModel.isUserOnlineStatus(receiverUID) { isOnline ->
+                                        if (!isOnline) {
+                                            getToken?.let { token ->
+                                                notificationsViewModel.sendNotification(
+                                                    token = token,
+                                                    body = "[sent you a recording]",
+                                                    title = name,
+                                                    imageURL = photoUrl
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
 
-                    }
-                )
-            } else {
-                Icon(
-                    painter = painterResource(id = R.drawable.baseline_send_24),
-                    contentDescription = "Send",
-                    tint = Color.White
-                )
+                        }
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_send_24),
+                        contentDescription = "Send",
+                        tint = Color.White
+                    )
+                }
             }
         }
     }

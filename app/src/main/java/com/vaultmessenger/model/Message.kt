@@ -8,6 +8,7 @@ data class Message(
     val voiceNoteURL: String? = null,
     val voiceNoteDuration:String? = null,
     val messageText: String = "",
+    val repliedTo:String = "",
     val name: String = "",
     val photoUrl: String = "",
     val timestamp: String = "",

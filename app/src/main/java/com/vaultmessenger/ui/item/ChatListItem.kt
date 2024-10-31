@@ -1,5 +1,6 @@
 package com.vaultmessenger.ui.item
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -49,6 +51,8 @@ fun ChatListItem(
     voiceNoteViewModel: VoiceNoteViewModel,
     chatViewModel:ChatViewModel,
     senderUid: String,
+    MenuActionItem: MutableState<String>,
+    replyMessage:MutableState<String?>,
 ) {
 
     //get Receiver User Profile:
@@ -90,6 +94,7 @@ fun ChatListItem(
     var isMessageRead by remember { mutableStateOf(localMessage.messageRead) }
 
     val isDropDownExpanded = remember { mutableStateOf(false) }
+    val menuActionItem = remember { mutableStateOf("") }
 
     // LaunchedEffect to mark the message as read when it is displayed
     LaunchedEffect(key1 = localMessage, key2 = isMessageRead) {
@@ -147,7 +152,12 @@ fun ChatListItem(
                         }
                     )
             ) {
-                ChatMessagesItemMenu(isDropDownExpanded)
+                ChatMessagesItemMenu(isDropDownExpanded) { selectedAction ->
+                    menuActionItem.value = selectedAction // Set the selected action
+                    MenuActionItem.value = selectedAction
+                    replyMessage.value = localMessage.messageText
+                    Log.d("Menuclick", selectedAction) // Log the selected action
+                }
 
                 if(localMessage.messageText.isNotBlank()){
                     ChatTextMessage(localMessage = localMessage)

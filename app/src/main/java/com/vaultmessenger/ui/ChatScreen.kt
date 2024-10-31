@@ -79,6 +79,10 @@ fun ChatScreen(
     val showScrollDownButton by remember {derivedStateOf {
         listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 } }
 
+    val  MenuActionItem: MutableState<String> = remember { mutableStateOf("") }
+
+    val replyMessage: MutableState<String?> = remember { mutableStateOf("") }
+
     LaunchedEffect(senderUID, receiverUID) {
         chatViewModel.getMessagesFlow(senderUID, receiverUID)
     }
@@ -160,7 +164,9 @@ fun ChatScreen(
                 profileViewModel = profileViewModel,
                 chatViewModel = chatViewModel,
                 conversationViewModel = conversationViewModel,
-                navController = navController
+                navController = navController,
+                MenuActionItem = MenuActionItem,
+                replyMessage = replyMessage,
             )
         },
         content = { padding ->
@@ -211,7 +217,9 @@ fun ChatScreen(
                             profileViewModel = profileViewModel,
                             voiceNoteViewModel = voiceNoteViewModel,
                             chatViewModel = chatViewModel,
-                            senderUid = senderUID
+                            senderUid = senderUID,
+                            MenuActionItem = MenuActionItem,
+                            replyMessage = replyMessage
                         )
                     }
                     }
